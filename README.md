@@ -20,7 +20,7 @@ https://www.e-education.psu.edu/geogvr/node/534
 
 1. Implement https://github.com/czq142857/IM-NET (get data, understand and run the model)
 
-    - Data preparation takes in .mat files. 
+    - Data preparation takes in .mat files. Need to figure out this workflow to setup my own dataset. 
 
 2. Use Blender + pyton to create a dataset of cuboids. 
 

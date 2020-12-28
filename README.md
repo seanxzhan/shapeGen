@@ -59,6 +59,10 @@ Reading code in ```point_sampling.py``` from IMNET tells me that I need to conve
 
 If we want a (16, 16, 16) array, we can construct a 16 by 16 by 16 coordinate system. The 3D can be initialized as ```coors = numpy.zeros((16, 16, 16))```. There are 16x16x16 = 4096 cubes of size 1 by 1 by 1. If the center of a cube (say a cube at (1, 2, 3)) lies inside of our shape, the coordinate ```coors[1][2][3]``` will be set to ```1```. 
 
+Ahah the above is actually very similar to the marching cubes algorithm but reversed and crude lol.
+
+
+
 ---
 
 ### Files

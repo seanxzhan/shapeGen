@@ -6,25 +6,25 @@ Author: Chaoqun Jiang
 Home Page: http://mcoder.cc
 """
 
-import pyassimp
+# import pyassimp
+import pywavefront as pf
 import numpy as np
 import operator
 import pyflann
 import json
-import binvox_rw
 import time
 import os
 
 def voxelization(
     filename,
-    outputJsonPath = '../voxel_json/',
-    outputNumpyPath = '../voxel_numpy/',
-    outputBinvoxPath = '../voxel_binvox/',
+    outputJsonPath = '.\\voxel_json\\',
+    outputNumpyPath = '.\\voxel_numpy\\',
     coef = 1.0,
-    size = (192,192,200)):
+    size = (16,16,16)):
     """ function voxelization
         This function load a *.ply model file, and convert it into a voxel.
         And export in two formats.
+
         numpy formats: just use numpy import, a array has shape (192, 192, 200)
         json format: a numpy format reshape to (-1,) and attribute name is 'array'
     Args:
@@ -32,7 +32,6 @@ def voxelization(
         outputJsonPath: a relative floder path to save voxel in json format
         outputNumpyPath: a relative floder path to save voxel in numpy format
             Note: The directory should already be created. Or it will throw IOError
-        outputBinvoxPath: a relative floder path to save in binvox format
         coef: used to judge if the point is 1 or 0
         size: a tuple with 3 integer, default is (192, 192, 200)
     Return:
@@ -43,7 +42,8 @@ def voxelization(
         print("The argument \" size \" should has three integer")
         return
 
-    scene = pyassimp.load(filename)     # import scene
+    # scene = pyassimp.load(filename)     # import scene
+    scene = pf.Wavefront(filename, collect_faces=True)
     meshes_count = len(scene.meshes)    # the count of meshes
     if meshes_count < 1:
         print("Error! The model file has no meshes in it")
@@ -81,13 +81,11 @@ def voxelization(
     #print("center", center, "start", start)
     print("center: {0}, staet: {1}".format(center, start))
 
+    scene_vertices = np.asarray(scene.vertices)
     for index in range(meshes_count):
-        _meshVoxel(start, edge, scene.meshes[index], voxel, coef, str(index))
+        _meshVoxel(start, edge, scene_vertices, voxel, coef, str(index))
     print("calculate all meshes voxel finished!")
 
-    # save voxel files
-    _saveVoxel(filename,
-        outputJsonPath, outputNumpyPath, outputBinvoxPath, voxel)
     return voxel
 
 def _getBoundingBox(scene):
@@ -103,28 +101,16 @@ def _getBoundingBox(scene):
         print("scene's meshes attribute has no mesh")
         return (0,0,0,0,0,0)
 
-    mesh_1 = scene.meshes[0]
-    xmax, ymax, zmax = np.amax( mesh_1.vertices, axis = 0 )
-    xmin, ymin, zmin = np.amin( mesh_1.vertices, axis = 0 )
-
-    for index in range(1,len(scene.meshes)):
-        mesh_t = scene.meshes[index]
-        xmax_t, ymax_t, zmax_t = np.amax( mesh_t.vertices, axis = 0)
-        xmin_t, ymin_t, zmin_t = np.amin( mesh_t.vertices, axis = 0)
-
-        if xmax_t > xmax:   xmax = xmax_t
-        if ymax_t > ymax:   ymax = ymax_t
-        if zmax_t > zmax:   zmax = zmax_t
-        if xmin_t < xmin:   xmin = xmin_t
-        if ymin_t < ymin:   ymin = ymin_t
-        if zmin_t < zmin:   zmin = zmin_t
+    scene_vertices = np.asarray(scene.vertices)
+    xmax, ymax, zmax = np.amax( scene_vertices, axis = 0 )
+    xmin, ymin, zmin = np.amin( scene_vertices, axis = 0 )
 
     # print("Bounding box: ",xmax, ymax, zmax, xmin, ymin, zmin)
     print("Bounding box: xmax: {0}, ymax: {1}, zmax:{2}, xmin: {3}, ymin: {4}, zmin: {5}".format(
         xmax, ymax, zmax, xmin, ymin, zmin))
     return (xmax, ymax, zmax, xmin, ymin, zmin)
 
-def _meshVoxel(startpoint, edge, mesh, voxel, coef = 1.0, str = "0"):
+def _meshVoxel(startpoint, edge, scene_vertices, voxel, coef = 1.0, str = "0"):
     """ mesh voxel function
     change numpy.ndarray's 0 to 1 acounding to mesh and scene'bounding box
     Args:
@@ -135,7 +121,9 @@ def _meshVoxel(startpoint, edge, mesh, voxel, coef = 1.0, str = "0"):
         coef: used to judge if this point is 1
         str: the string you want to split each mesh
     """
-    vertices = mesh.vertices    #  np.array n x 3
+    vertices = scene_vertices    #  np.array n x 3
+
+    print(vertices)
 
     #print("The mesh ", str," has vertices: ", vertices.shape)
     print("The mesh {0} has vertices {1}".format(str, vertices.shape))
@@ -157,7 +145,7 @@ def _meshVoxel(startpoint, edge, mesh, voxel, coef = 1.0, str = "0"):
                 voxel_center = np.array([[
                     startpoint[0] + x * edge,
                     startpoint[1] + y * edge,
-                    startpoint[2] + z * edge]],dtype = np.float32)
+                    startpoint[2] + z * edge]], dtype = np.float64)
                 result, dists = flann.nn_index(voxel_center, 1,
                     checks = params["checks"])
                 index = result[0]
@@ -172,43 +160,6 @@ def _meshVoxel(startpoint, edge, mesh, voxel, coef = 1.0, str = "0"):
     print("The mesh {0} process successfully in {1}s".format(
         str, (time.time() - start_time)))
 
-def _saveVoxel(filename,
-    outputJsonPath, outputNumpyPath, outputBinvoxPath, voxel):
-    """ save voxel
-        Save the voxel into file.
-    Args:
-        filename:   the filename of import.
-        outputJsonPath: path to save json.
-        outputNumpyPath: path to save numpy.
-        outputBinvoxPath: path to save binvox.
-        voxel: numpy.ndarray
-    """
-    startPoint = 0
-    if filename.rfind("/") != -1:
-        startPoint = filename.rfind("/") + 1
-
-    filename = filename[startPoint:filename.rfind('.')]  # cut the format end
-    # save npy
-    #voxel.tofile(outputNumpyPath + filename + ".numpy")
-    np.save(os.path.join( outputNumpyPath, filename ) + ".npy", voxel)
-
-    # save binvox
-    bool_voxel = voxel.astype(np.bool)
-    binvox = binvox_rw.Voxels(
-        data = bool_voxel,
-        dims = list(voxel.shape),
-        translate = [0.0, 0.0, 0.0],
-        scale = 1.0,
-        axis_order = 'xzy')
-    fp = open(os.path.join( outputBinvoxPath, filename ) + ".binvox", 'wb+')
-    fp.truncate()
-    binvox.write(fp)
-    fp.close()
-
-    # save json
-    array = voxel.reshape(-1,)
-    json_str = json.dumps(array.tolist())
-    json_file = open(os.path.join( outputJsonPath, filename ) + ".json", "w+")
-    json_file.truncate()            # 清空当前文件的内容
-    json_file.write(json_str)
-    json_file.close()
+if __name__ == '__main__':
+    vox_arr = voxelization('.\\square_rings\\0.obj')
+    print(vox_arr)

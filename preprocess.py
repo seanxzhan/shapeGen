@@ -6,6 +6,9 @@ from matplotlib import cm
 import scipy.io as sio
 import pywavefront as pf
 import random
+import voxelizer as voxl
+import mesh_to_sdf as mts
+import trimesh
 
 dim = 64
 
@@ -32,7 +35,7 @@ def check_data():
 def convert_to_arrays():
     """ Converts a wavefront obj into a 3D array
     """
-    file_dir = '.\\square_rings\\4.obj'
+    file_dir = '.\\square_rings\\0.obj'
     scene = pf.Wavefront(file_dir, collect_faces=True)
     for name, material in scene.materials.items():
         # note: there's ony one item in the scene
@@ -43,19 +46,21 @@ def convert_to_arrays():
 
     scene_vertices = np.asarray(scene.vertices)
     # visualize_scatterplot(np.transpose(scene_vertices))
-    scene_box = (scene.vertices[0], scene.vertices[0])
-    for vertex in scene.vertices:
-        min_v = [min(scene_box[0][i], vertex[i]) for i in range(3)]
-        max_v = [max(scene_box[1][i], vertex[i]) for i in range(3)]
-        scene_box = (min_v, max_v)
-    # print(scene_box)
+    xmax, ymax, zmax = np.amax( scene_vertices, axis = 0 )
+    xmin, ymin, zmin = np.amin( scene_vertices, axis = 0 )
+    scene_box = ((xmax, ymax, zmax), (xmin, ymin, zmin))
+    print(scene_box)
 
-    print(len(scene.meshes))
-    print(scene.mesh_list[0])
+    vox_res = (16, 16, 16)
 
-    # for mesh in scene.mesh_list:
-    #     for face in mesh.faces:
-    #         print(face)
+    vox_unit_x = (xmax - xmin) / vox_res[0]
+    vox_unit_y = (ymax - ymin) / vox_res[1]
+    vox_unit_z = (zmax - zmin) / vox_res[2]
+
+    for mesh in scene.mesh_list:
+        print(len(np.asarray(mesh.faces)))
+        for face in mesh.faces:
+            print(face)
 
 def sample_point_in_cube(block,target_value,halfie):
 	halfie2 = halfie*2
@@ -297,8 +302,26 @@ def visualize_scatterplot(arr):
 
 if __name__ == '__main__':
     # check_data()
-    # voxl.voxelization('.\\square_rings\\0.obj')
-    convert_to_arrays()
+    # vox_arr = voxl.voxelization('.\\square_rings\\0.obj')
+    # visualize_3d_arr(vox_arr)
+    # convert_to_arrays()
+
+    # mesh = trimesh.load('.\\square_rings\\0.obj')
+    # voxels = mts.mesh_to_voxels(mesh, 14, pad=True)
+    # voxels = np.asarray(voxels)
+    # np.save('0.npy', voxels)
+    # print(voxels.shape)
+
+    d = np.load('./0.npy')
+    print(len(np.unique(d)))
+    signed = np.sign(d)
+    signed = signed - 1
+    signed = signed * 0.5 * (-1) + 0.
+    signed.astype(int)
+    print(np.unique(signed))
+    print(signed)
+    visualize_3d_arr(signed)
+
     # IMNET_point_sampling()
     # arr = np.array(
     #     [

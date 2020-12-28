@@ -1,3 +1,4 @@
+# run this script in blender to generate a bunch of rectangular rings
 import bpy # import this to enable python
 import bmesh
 import random
@@ -93,8 +94,6 @@ if __name__ == '__main__':
         blend_file_path = bpy.data.filepath
         dir = os.path.dirname(blend_file_path) 
         dir = os.path.join(dir, 'square_rings')
-        print(dir)
         filename = str(i) + '.obj'
         target_file = os.path.join(dir, filename)
-        print(target_file)
         bpy.ops.export_scene.obj(filepath=target_file)

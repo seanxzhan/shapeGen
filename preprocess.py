@@ -1,4 +1,5 @@
 import glob
+import os
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
@@ -6,6 +7,7 @@ from matplotlib import cm
 import scipy.io as sio
 import pywavefront as pf
 import random
+import re
 import voxelizer as voxl
 import mesh_to_sdf as mts
 import trimesh
@@ -34,6 +36,7 @@ def check_data():
 
 def convert_to_arrays():
     """ Converts a wavefront obj into a 3D array
+    DEPRECATED FUNCTION
     """
     file_dir = '.\\square_rings\\0.obj'
     scene = pf.Wavefront(file_dir, collect_faces=True)
@@ -96,6 +99,8 @@ def IMNET_point_sampling():
     # voxel_model_mat = sio.loadmat('.\\02691156\\1a9b552befd6306cc8f2d5fe7449af61.mat')
     voxel_model_b = voxel_model_mat['b'][:].astype(np.int32)
     voxel_model_bi = voxel_model_mat['bi'][:].astype(np.int32)-1
+    print(np.asarray(voxel_model_b).shape)
+    print(np.asarray(voxel_model_bi).shape)
     visualize_3d_arr(voxel_model_bi)
     
     voxel_model_256 = np.zeros([256,256,256],np.uint8)
@@ -105,6 +110,7 @@ def IMNET_point_sampling():
                 voxel_model_256[i*16:i*16+16,j*16:j*16+16,k*16:k*16+16] = \
                     voxel_model_b[voxel_model_bi[i,j,k]]
     voxel_model_256 = np.flip(np.transpose(voxel_model_256, (2,1,0)),2)
+    print(np.unique(voxel_model_256))
 
     #carve the voxels from side views:
     #top direction = Y(j) positive direction
@@ -207,10 +213,6 @@ def IMNET_point_sampling():
     sample_points_64 = sample_points
     sample_values_64 = sample_values
     
-    
-    
-    
-    
     #compress model 256 -> 32
     dim_voxel = 32
     voxel_model_temp = np.zeros([dim_voxel,dim_voxel,dim_voxel],np.uint8)
@@ -278,10 +280,33 @@ def IMNET_point_sampling():
     print(voxel_model_temp)
     visualize_3d_arr(voxel_model_temp)
 
+    batch_size = batch_size_1
+		
+    sample_points = np.zeros([batch_size,3],np.uint8)
+    sample_values = np.zeros([batch_size,1],np.uint8)
+    batch_size_counter = 0
+    for i in range(dim_voxel):
+        for j in range(dim_voxel):
+            for k in range(dim_voxel):
+                si,sj,sk = sample_point_in_cube(voxel_model_256[i*multiplier:(i+1)*multiplier,j*multiplier:(j+1)*multiplier,k*multiplier:(k+1)*multiplier],voxel_model_temp[i,j,k],halfie)
+                sample_points[batch_size_counter,0] = si+i*multiplier
+                sample_points[batch_size_counter,1] = sj+j*multiplier
+                sample_points[batch_size_counter,2] = sk+k*multiplier
+                sample_values[batch_size_counter,0] = voxel_model_temp[i,j,k]
+                batch_size_counter +=1
+    if (batch_size_counter!=batch_size):
+        print("batch_size_counter!=batch_size")
+    
+    sample_points_16 = sample_points
+    sample_values_16 = sample_values
+
+    print(sample_points_16)
+    print(sample_values_16)
+
 def visualize_3d_arr(arr):
     """ Visualize a 3 dimensional array that represents voxels
     Args:
-        arr (numpy.array): a 3D array representing voxels
+        arr (numpy.ndarray): a 3D array representing voxels
     """
     x = arr[0]
     y = arr[1]
@@ -292,6 +317,11 @@ def visualize_3d_arr(arr):
     plt.show()
 
 def visualize_scatterplot(arr):
+    """Visualize points in 3D space
+
+    Args:
+        arr (numpy.ndarray): a 2D array, where the element corresponds to a dim
+    """
     x = arr[0]
     y = arr[1]
     z = arr[2]
@@ -300,34 +330,34 @@ def visualize_scatterplot(arr):
     ax.scatter(x, y, z)
     plt.show()
 
+def voxelize_and_save():
+    """Converts wavefront objects to 3D arrays representing voxels.
+    """
+    for filename in os.listdir('./square_rings'):
+        if filename.endswith('.obj'):
+            name = re.search('(.*).obj', filename).group(1)
+            name = name + '.npy'
+            if name not in os.listdir('./square_rings_vox'):
+                print("--- Voxelizing {} ---".format(filename))
+                mesh = trimesh.load(os.path.join('square_rings', filename))
+                voxels = mts.mesh_to_voxels(mesh, 14, pad=True)
+                voxels = np.asarray(voxels)
+                voxels = np.sign(voxels)
+                voxels = (-1 * voxels + 1) / 2
+                voxels = voxels.astype('int')
+                np.save('.\\square_rings_vox\\' + name, voxels)
+    print("finished voxelization")
+
 if __name__ == '__main__':
     # check_data()
     # vox_arr = voxl.voxelization('.\\square_rings\\0.obj')
     # visualize_3d_arr(vox_arr)
-    # convert_to_arrays()
 
-    # mesh = trimesh.load('.\\square_rings\\0.obj')
-    # voxels = mts.mesh_to_voxels(mesh, 14, pad=True)
-    # voxels = np.asarray(voxels)
-    # np.save('0.npy', voxels)
-    # print(voxels.shape)
+    voxelize_and_save()
 
-    d = np.load('./0.npy')
-    print(len(np.unique(d)))
-    signed = np.sign(d)
-    signed = signed - 1
-    signed = signed * 0.5 * (-1) + 0.
-    signed.astype(int)
-    print(np.unique(signed))
-    print(signed)
-    visualize_3d_arr(signed)
-
-    # IMNET_point_sampling()
-    # arr = np.array(
-    #     [
-    #         [[1, 1, 1], [1, 1, 1], [1, 1, 1]],
-    #         [[1, 1, 1], [1, 1, 1], [1, 1, 1]],
-    #         [[1, 1, 1], [1, 1, 1], [1, 1, 1]]
-    #     ]
-    # )
-    # visualize_3d_arr(arr)
+    # for filename in os.listdir('./square_rings'):
+    #     if filename.endswith('.obj'):
+    #         print("--- Plotting {} ---".format(filename))
+    #         name = re.search('(.*).obj', filename).group(1)
+    #         mesh = np.load(os.path.join('square_rings_vox', name + '.npy'))
+    #         visualize_3d_arr(mesh)

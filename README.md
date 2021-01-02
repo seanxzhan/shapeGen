@@ -2,18 +2,9 @@
 
 This project has two parts:
 
-- A procedural model that generates a dataset of one type of procedural 3D shapes. 
+- A script that generates a dataset of one type of procedural 3D shapes (rectangular rings). 
 
 - A generative model that trains on the dataset and generates those shapes. 
-
----
-
-### Terms
-
-- **Procedural Modeling** is the process of creating 3D models from a set of rules. 
-What 3D format? 
-https://www.e-education.psu.edu/geogvr/node/534
-https://link.springer.com/article/10.1007/s00371-018-1589-4?shared-article-renderer
 
 ---
 
@@ -31,6 +22,8 @@ https://link.springer.com/article/10.1007/s00371-018-1589-4?shared-article-rende
 
 3. Voxelize these objects (.obj) into 3D arrays, then encode the dataset as .hdf5
 
+    - A function in **preprocess.py** will save these wavefront objects to a bunch of **.npy** arrays. I will then modify pythons scripts IM-NET/point_sampling to load and encode these arrays into .hdf5 following IM-NET's point sampling method.
+
 4. Run this dataset of shapes through the model
 
 5. If successful, go back to Blender and make some interesting procedural shapes.
@@ -38,6 +31,12 @@ https://link.springer.com/article/10.1007/s00371-018-1589-4?shared-article-rende
 ---
 
 ### Questions
+
+**What's procedural modeling?**
+
+**Procedural Modeling** is the process of creating 3D models from a set of rules. 
+https://www.e-education.psu.edu/geogvr/node/534
+https://link.springer.com/article/10.1007/s00371-018-1589-4?shared-article-renderer
 
 **How to write some code that generates a 3D model?**
 
@@ -63,6 +62,12 @@ Ahah the above is actually very similar to the marching cubes algorithm but reve
 
 In this project, I will use a package ```mesh-to-sdf```. It takes in a wavefront object and outputs an ndarray of SDF (signed distance field) values. If the value at a position P is positive, then point P lies outside of the object, and if the value is negative, then P is inside the object. With this knowledge, we can simply convert the sdf output to a 3d array with 1s and 0s to represent voxels. 
 
+**How does the dimension of voxels array impact result?**
+
+I'm currently using (16, 16, 16) arrays to represent my square rings, but I'm worried that this is too small. I used IM-NET's progressive point sampling, and it brought it down to (8, 8, 8), (4, 4, 4), and (2, 2, 2), so the network will [gradually] learn from 2^3 to 4^3 to 8^3. We will see how this goes. 
+
+If the network doesn't quite learn, I might need to convert my square rings wavefront objects to (64, 64, 64), but the conversion will take a long time. 
+
 ---
 
 ### Files
@@ -73,17 +78,9 @@ In this project, I will use a package ```mesh-to-sdf```. It takes in a wavefront
 
 ---
 
-### Dev
+### Dev Notes
 
 #### Create virtual env
-
-The project is developed in Windows 10
-
-```
-py -m venv env
-.\env\Scripts\activate
-pip install -r requirements.txt
-```
 
 Followed README of https://github.com/czq142857/IM-NET. The data that this repo references seems to be processed data in .mat. No clue what the 'b' and 'bi' fields in the .mat file mean. 
 

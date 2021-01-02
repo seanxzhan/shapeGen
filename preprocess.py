@@ -116,6 +116,8 @@ def IMNET_point_sampling():
     #top direction = Y(j) positive direction
     dim_voxel = 256
     top_view = np.max(voxel_model_256, axis=1)
+    print(top_view.shape)
+    print(np.unique(top_view))
     left_min = np.full([dim_voxel,dim_voxel],dim_voxel,np.int32)
     left_max = np.full([dim_voxel,dim_voxel],-1,np.int32)
     front_min = np.full([dim_voxel,dim_voxel],dim_voxel,np.int32)
@@ -333,19 +335,19 @@ def visualize_scatterplot(arr):
 def voxelize_and_save():
     """Converts wavefront objects to 3D arrays representing voxels.
     """
-    for filename in os.listdir('./square_rings'):
+    for filename in os.listdir('./square_rings_objs'):
         if filename.endswith('.obj'):
             name = re.search('(.*).obj', filename).group(1)
             name = name + '.npy'
-            if name not in os.listdir('./square_rings_vox'):
+            if name not in os.listdir('./square_rings_vox_64'):
                 print("--- Voxelizing {} ---".format(filename))
-                mesh = trimesh.load(os.path.join('square_rings', filename))
-                voxels = mts.mesh_to_voxels(mesh, 14, pad=True)
+                mesh = trimesh.load(os.path.join('square_rings_objs', filename))
+                voxels = mts.mesh_to_voxels(mesh, 62, pad=True)
                 voxels = np.asarray(voxels)
                 voxels = np.sign(voxels)
                 voxels = (-1 * voxels + 1) / 2
                 voxels = voxels.astype('int')
-                np.save('.\\square_rings_vox\\' + name, voxels)
+                np.save('.\\square_rings_vox_64\\' + name, voxels)
     print("finished voxelization")
 
 if __name__ == '__main__':
@@ -353,7 +355,19 @@ if __name__ == '__main__':
     # vox_arr = voxl.voxelization('.\\square_rings\\0.obj')
     # visualize_3d_arr(vox_arr)
 
+    # mesh = trimesh.load('./square_rings_objs/0.obj')
+    # voxels = mts.mesh_to_voxels(mesh, 14, pad=True)
+    # voxels = np.asarray(voxels)
+    # voxels = np.sign(voxels)
+    # voxels = (-1 * voxels + 1) / 2
+    # np.save('./square_rings_vox/0.npy', voxels)
+
+    # voxel_model_16_original = np.load('./square_rings_vox/0.npy')
+    # voxel_model_16_original = voxel_model_16_original.astype('int')
+    # visualize_3d_arr(voxel_model_16_original)
+
     voxelize_and_save()
+    # IMNET_point_sampling()
 
     # for filename in os.listdir('./square_rings'):
     #     if filename.endswith('.obj'):

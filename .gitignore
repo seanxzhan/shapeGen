@@ -1,9 +1,11 @@
 /env
 /02691156
 /models
-/square_rings
+/square_rings_objs
 /pics
 /__pycache__
 /square_rings_vox
 /square_rings_vox_64
 /square_rings_vox_256
+/point_sampling/square_rings
+/point_sampling/tmp

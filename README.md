@@ -108,5 +108,7 @@ https://www.mertl-research.at/ceonwiki/doku.php?id=software:kicad:3d_package_wit
 
 - https://blender.stackexchange.com/questions/115397/extrude-in-python
 
+IM-NET readme: Training on the 13 ShapeNet categories takes about 4 days on one GeForce RTX 2080 Ti GPU. ==> I decided to voxelize the wavefront objects into 16 by 16 by 16 voxel representations to reduce training time (I want to get the entire workflow worked out first before working w/ more complex shapes and higher resolutions). 
 
+Simplified point_sampling to fit my one-model-type dataset. 
 

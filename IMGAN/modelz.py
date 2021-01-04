@@ -10,7 +10,8 @@ import cv2
 from ops import *
 
 class ZGAN(object):
-	def __init__(self, sess, is_training = False, z_vector_dim=128, z_dim=128, df_dim=2048, gf_dim=2048, dataset_name='default', checkpoint_dir=None, sample_dir=None, data_dir='./data'):
+	# def __init__(self, sess, is_training = False, z_vector_dim=128, z_dim=128, df_dim=2048, gf_dim=2048, dataset_name='default', checkpoint_dir=None, sample_dir=None, data_dir='./data'):
+	def __init__(self, sess, is_training = False, z_vector_dim=32, z_dim=32, df_dim=256, gf_dim=256, dataset_name='default', checkpoint_dir=None, sample_dir=None, data_dir='./data'):
 		"""
 		Args:
 			too lazy to explain
@@ -133,7 +134,7 @@ class ZGAN(object):
 				
 			print("Epoch: [%4d/%4d] time: %4.4f, d_loss: %.8f, g_loss: %.8f" % (epoch, config.epoch, time.time() - start_time, errD_total/batch_num, errG_total/batch_num))
 
-			if epoch%1000 == 0:
+			if epoch%10 == 0:
 				self.save(config.checkpoint_dir, epoch)
 				
 				#training z

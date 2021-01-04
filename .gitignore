@@ -10,5 +10,8 @@
 /point_sampling/tmp
 /point_sampling/square_rings
 /point_sampling/square_rings_dataset
-/IMGAN/data/square_rings_vox16_img_train.hdf5
-/IMGAN/data/square_rings_vox16_img_test.hdf5
+/IMGAN/__pycache__
+/IMGAN/checkpoint
+/IMGAN/samples
+/IMGAN/samples_1
+/IMGAN/data/

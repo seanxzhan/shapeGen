@@ -12,11 +12,14 @@ import h5py
 
 flags = tf.app.flags
 flags.DEFINE_integer("epoch", 10000, "Epoch to train [25]")
-flags.DEFINE_float("learning_rate", 0.00005, "Learning rate of for adam [0.0002]")
+flags.DEFINE_float("learning_rate", 0.00002, "Learning rate of for adam [0.0002]")
 flags.DEFINE_float("beta1", 0.5, "Momentum term of adam [0.5]")
-flags.DEFINE_string("dataset", "all_vox256_img", "The name of dataset")
-flags.DEFINE_integer("real_size", 64, "output point-value voxel grid size in training [64]")
-flags.DEFINE_integer("batch_size_input", 16384, "training batch size (virtual, batch_size is the real batch_size) [16384]")
+# flags.DEFINE_string("dataset", "all_vox256_img", "The name of dataset")
+# flags.DEFINE_integer("real_size", 64, "output point-value voxel grid size in training [64]")
+# flags.DEFINE_integer("batch_size_input", 16384, "training batch size (virtual, batch_size is the real batch_size) [16384]")
+flags.DEFINE_string("dataset", "square_rings_vox16_img", "The name of dataset")
+flags.DEFINE_integer("real_size", 8, "output point-value voxel grid size in training [8]")
+flags.DEFINE_integer("batch_size_input", 256, "training batch size (virtual, batch_size is the real batch_size) [256]")
 flags.DEFINE_string("checkpoint_dir", "checkpoint", "Directory name to save the checkpoints [checkpoint]")
 flags.DEFINE_string("data_dir", "./data", "Root directory of dataset [data]")
 flags.DEFINE_string("sample_dir", "samples", "Directory name to save the image samples [samples]")

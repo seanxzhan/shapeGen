@@ -18,6 +18,16 @@ def linear(input_, output_size, scope):
 		print("linear","in",shape,"out",(shape[0],output_size))
 		return tf.matmul(input_, matrix) + bias
 
+def lift(input_, output_size, strides, scope, padding):
+	in_shape = input_.get_shape().as_list()
+	with tf.variable_scope(scope):
+		matrix = tf.get_variable("Matrix", shape, initializer=tf.contrib.layers.xavier_initializer())
+		bias = tf.get_variable("bias", [shape[-1]], initializer=tf.zeros_initializer())
+		conv = tf.nn.conv3d_transpose(input_, matrix, output_size, strides=strides, padding=padding)
+		conv = tf.nn.bias_add(conv, bias)
+		print("lifting","in",in_shape,"out",conv.shape)
+		return conv
+
 def conv2d(input_, shape, strides, scope, padding="SAME"):
 	with tf.variable_scope(scope):
 		matrix = tf.get_variable('Matrix', shape, initializer=tf.truncated_normal_initializer(stddev=0.02))

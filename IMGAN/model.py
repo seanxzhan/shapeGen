@@ -11,7 +11,8 @@ import mcubes
 from ops import *
 
 class IMAE(object):
-	def __init__(self, sess, real_size, batch_size_input, is_training = False, z_dim=256, ef_dim=32, gf_dim=128, dataset_name='default', checkpoint_dir=None, sample_dir=None, data_dir='./data'):
+	# def __init__(self, sess, real_size, batch_size_input, is_training = False, z_dim=256, ef_dim=32, gf_dim=128, dataset_name='default', checkpoint_dir=None, sample_dir=None, data_dir='./data'):
+	def __init__(self, sess, real_size, batch_size_input, is_training = False, z_dim=32, ef_dim=4, gf_dim=128, dataset_name='default', checkpoint_dir=None, sample_dir=None, data_dir='./data'):
 		"""
 		Args:
 			too lazy to explain
@@ -29,7 +30,7 @@ class IMAE(object):
 		if self.batch_size_input<self.batch_size:
 			self.batch_size = self.batch_size_input
 		
-		self.input_size = 64 #input voxel grid size
+		self.input_size = 8 #input voxel grid size
 
 		self.z_dim = z_dim
 		self.ef_dim = ef_dim
@@ -108,7 +109,7 @@ class IMAE(object):
 			self.frame_z = np.reshape(self.frame_z,[dimf*dimf*dimf])
 			self.frame_coords = (self.frame_coords+0.5)/dimf-0.5
 			self.frame_coords = np.reshape(self.frame_coords,[dimf*dimf*dimf,3])
-			self.sampling_threshold = 0.5 #final marching cubes threshold
+			self.sampling_threshold = 0.9 #final marching cubes threshold
 		
 		self.build_model()
 
@@ -123,7 +124,7 @@ class IMAE(object):
 		self.sE = self.encoder(self.vox3d, phase_train=False, reuse=True)
 		self.sG = self.generator(self.point_coord, self.sE, phase_train=False, reuse=True)
 		self.zG = self.generator(self.point_coord, self.z_vector, phase_train=False, reuse=True)
-		
+
 		self.loss = tf.reduce_mean(tf.square(self.point_value - self.G))
 		
 		self.saver = tf.train.Saver(max_to_keep=10)
@@ -141,13 +142,13 @@ class IMAE(object):
 			h1 = lrelu(linear(pointz, self.gf_dim*8, 'h1_lin'))
 			h2 = lrelu(linear(h1, self.gf_dim*8, 'h2_lin'))
 			h3 = lrelu(linear(h2, self.gf_dim*8, 'h3_lin'))
-			h4 = lrelu(linear(h3, self.gf_dim*4, 'h4_lin'))
+			h4 = lrelu(linear(h1, self.gf_dim*4, 'h4_lin'))
 			h5 = lrelu(linear(h4, self.gf_dim*2, 'h5_lin'))
 			h6 = lrelu(linear(h5, self.gf_dim, 'h6_lin'))
 			h7 = linear(h6, 1, 'h7_lin')
-			h7 = tf.maximum(tf.minimum(h7, 1), 0)
+			# h7 = tf.maximum(tf.minimum(h7, 1), 0)
 			#use this leaky activation function instead if you face convergence issues
-			#h7 = tf.maximum(tf.minimum(h7, h7*0.01+0.99), h7*0.01)
+			h7 = tf.maximum(tf.minimum(h7, h7*0.01+0.99), h7*0.01)
 			
 			return tf.reshape(h7, [batch_size,1])
 	
@@ -156,22 +157,49 @@ class IMAE(object):
 			if reuse:
 				scope.reuse_variables()
 			
-			d_1 = conv3d(inputs, shape=[4, 4, 4, 1, self.ef_dim], strides=[1,2,2,2,1], scope='conv_1')
+			param = 2
+
+			# #lifted = lift(inputs, 64, 'lifting')
+
+			# d_1 = conv3d(lifted, shape=[param, param, param, 1, self.ef_dim], strides=[1,2,2,2,1], scope='conv_1')
+			# # d_1 = conv3d(inputs, shape=[2, 2, 2, 1, self.ef_dim], strides=[1,2,2,2,1], scope='conv_1')
+			# # d_1 = conv3d(inputs, shape=[2, 2, 2, 1, 16], strides=[1,2,2,2,1], scope='conv_1')
+			# d_1 = lrelu(instance_norm(d_1, phase_train))
+
+			# d_2 = conv3d(d_1, shape=[param, param, param, self.ef_dim, self.ef_dim*2], strides=[1,2,2,2,1], scope='conv_2')
+			# # d_2 = conv3d(d_1, shape=[2, 2, 2, self.ef_dim, self.ef_dim*2], strides=[1,2,2,2,1], scope='conv_2')
+			# # d_2 = conv3d(d_1, shape=[4, 4, 4, 4, 32], strides=[1,1,1,1,1], scope='conv_2', padding="VALID")
+			# d_2 = lrelu(instance_norm(d_2, phase_train))
+			# # d_2 = tf.nn.sigmoid(d_2)
+			
+			# d_3 = conv3d(d_2, shape=[param, param, param, self.ef_dim*2, self.ef_dim*4], strides=[1,2,2,2,1], scope='conv_3')
+			# d_3 = lrelu(instance_norm(d_3, phase_train))
+			# # d_3 = conv3d(d_2, shape=[2, 2, 2, self.ef_dim*2, self.z_dim], strides=[1,1,1,1,1], scope='conv_3', padding="VALID")
+			# # d_3 = tf.nn.sigmoid(d_3)
+
+			# # d_4 = conv3d(d_3, shape=[4, 4, 4, self.ef_dim*4, self.ef_dim*8], strides=[1,2,2,2,1], scope='conv_4')
+			# d_4 = conv3d(d_3, shape=[param, param, param, self.ef_dim*4, self.ef_dim*8], strides=[1,2,2,2,1], scope='conv_4')
+			# d_4 = lrelu(instance_norm(d_4, phase_train))
+			# # d_4 = tf.nn.sigmoid(d_4)
+
+			# d_5 = conv3d(d_4, shape=[4, 4, 4, self.ef_dim*8, self.z_dim], strides=[1,1,1,1,1], scope='conv_5', padding="VALID")
+			# d_5 = tf.nn.sigmoid(d_5)
+		
+			# return tf.reshape(d_5,[1,self.z_dim])
+
+			d_1 = conv3d(inputs, shape=[param, param, param, 1, self.ef_dim], strides=[1,2,2,2,1], scope='conv_1')
 			d_1 = lrelu(instance_norm(d_1, phase_train))
 
-			d_2 = conv3d(d_1, shape=[4, 4, 4, self.ef_dim, self.ef_dim*2], strides=[1,2,2,2,1], scope='conv_2')
+			d_2 = conv3d(d_1, shape=[param, param, param, self.ef_dim, self.ef_dim*2], strides=[1,2,2,2,1], scope='conv_2')
 			d_2 = lrelu(instance_norm(d_2, phase_train))
-			
-			d_3 = conv3d(d_2, shape=[4, 4, 4, self.ef_dim*2, self.ef_dim*4], strides=[1,2,2,2,1], scope='conv_3')
+
+			d_3 = conv3d(d_2, shape=[param, param, param, self.ef_dim*2, self.ef_dim*4], strides=[1,1,1,1,1], scope='conv_3')
 			d_3 = lrelu(instance_norm(d_3, phase_train))
 
-			d_4 = conv3d(d_3, shape=[4, 4, 4, self.ef_dim*4, self.ef_dim*8], strides=[1,2,2,2,1], scope='conv_4')
-			d_4 = lrelu(instance_norm(d_4, phase_train))
-
-			d_5 = conv3d(d_4, shape=[4, 4, 4, self.ef_dim*8, self.z_dim], strides=[1,1,1,1,1], scope='conv_5', padding="VALID")
-			d_5 = tf.nn.sigmoid(d_5)
-		
-			return tf.reshape(d_5,[1,self.z_dim])
+			d_4 = conv3d(d_3, shape=[param, param, param, self.ef_dim*4, self.z_dim], strides=[1,1,1,1,1], scope='conv_4', padding="VALID")
+			d_4 = tf.nn.sigmoid(d_4)
+			
+			return tf.reshape(d_4,[1,self.z_dim])
 	
 	def train(self, config):
 		ae_optim = tf.train.AdamOptimizer(config.learning_rate, beta1=config.beta1).minimize(self.loss)
@@ -213,12 +241,14 @@ class IMAE(object):
 						})
 					avg_loss += errAE
 					avg_num += 1
-					if (idx%1024 == 0):
+					if (idx%200 == 0):
 						print("Epoch: [%2d/%2d] [%4d/%4d] time: %4.4f, loss: %.8f, avgloss: %.8f" % (epoch, config.epoch, idx, batch_idxs, time.time() - start_time, errAE, avg_loss/avg_num))
 
 				if idx==batch_idxs-1:
-					model_float = np.zeros([256,256,256],np.float32)
-					real_model_float = np.zeros([256,256,256],np.float32)
+					# model_float = np.zeros([256,256,256],np.float32)
+					# real_model_float = np.zeros([256,256,256],np.float32)
+					model_float = np.zeros([16,16,16],np.float32)
+					real_model_float = np.zeros([16,16,16],np.float32)
 					for minib in range(batch_num):
 						dxb = batch_index_list[idx]
 						batch_voxels = self.data_voxels[dxb:dxb+1]
@@ -468,12 +498,12 @@ class IMAE(object):
 		
 		for t in range(batch_z.shape[0]):
 			model_float = self.z2voxel(batch_z[t:t+1])
-			#img1 = np.clip(np.amax(model_float, axis=0)*256, 0,255).astype(np.uint8)
-			#img2 = np.clip(np.amax(model_float, axis=1)*256, 0,255).astype(np.uint8)
-			#img3 = np.clip(np.amax(model_float, axis=2)*256, 0,255).astype(np.uint8)
-			#cv2.imwrite(config.sample_dir+"/"+str(t)+"_1t.png",img1)
-			#cv2.imwrite(config.sample_dir+"/"+str(t)+"_2t.png",img2)
-			#cv2.imwrite(config.sample_dir+"/"+str(t)+"_3t.png",img3)
+			# img1 = np.clip(np.amax(model_float, axis=0)*256, 0,255).astype(np.uint8)
+			# img2 = np.clip(np.amax(model_float, axis=1)*256, 0,255).astype(np.uint8)
+			# img3 = np.clip(np.amax(model_float, axis=2)*256, 0,255).astype(np.uint8)
+			# cv2.imwrite(config.sample_dir+"/"+str(t)+"_1tt.png",img1)
+			# cv2.imwrite(config.sample_dir+"/"+str(t)+"_2tt.png",img2)
+			# cv2.imwrite(config.sample_dir+"/"+str(t)+"_3tt.png",img3)
 			
 			vertices, triangles = mcubes.marching_cubes(model_float, self.sampling_threshold)
 			vertices = (vertices-0.5)/self.real_size-0.5

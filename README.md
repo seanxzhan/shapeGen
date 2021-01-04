@@ -112,3 +112,14 @@ IM-NET readme: Training on the 13 ShapeNet categories takes about 4 days on one 
 
 Simplified point_sampling to fit my one-model-type dataset. 
 
+'''
+python main.py --ae --train --epoch 20 --real_size 2 --batch_size_input 8
+python main.py --ae --train --epoch 40 --real_size 4 --batch_size_input 64
+python main.py --ae --train --epoch 80 --real_size 8 --batch_size_input 256
+python main.py --ae
+python main.py --train --epoch 1000
+python main.py
+'''
+
+
+20, 80,  

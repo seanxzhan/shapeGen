@@ -15,7 +15,8 @@ class IMAE(object):
 	def __init__(self, sess, real_size, batch_size_input, is_training = False, z_dim=32, ef_dim=4, gf_dim=128, dataset_name='default', checkpoint_dir=None, sample_dir=None, data_dir='./data'):
 		"""
 		Args:
-			too lazy to explain
+			author: too lazy to explain
+			### TODO ###
 		"""
 		self.sess = sess
 

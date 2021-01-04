@@ -1,18 +1,14 @@
 ## ShapeGen
 
-This project has two parts:
-
-- A script that generates a dataset of one type of procedural 3D shapes (rectangular rings). 
-
-- A generative model that trains on the dataset and generates those shapes. 
+This project generates a type of procedural 3D shapes (currently rectangular rings) and trains on the dataset and generates those shapes. 
 
 ---
 
 ### Roadmap
 
-1. Implement https://github.com/czq142857/IM-NET (get data, understand and run the model)
+1. Run https://github.com/czq142857/IM-NET (get data, understand and run the model)
 
-    - Data preparation takes in .mat files. Need to figure out this workflow to setup my own dataset. 
+    - Data preparation takes in .mat files. Need to figure out this workflow to setup my own dataset. EDIT: workflow is described below. 
 
 2. Use Blender + pyton to create a dataset of simple shapes (rectangular rings). 
 
@@ -22,9 +18,11 @@ This project has two parts:
 
 3. Voxelize these objects (.obj) into 3D arrays, then encode the dataset as .hdf5
 
-    - A function in **preprocess.py** will save these wavefront objects to a bunch of **.npy** arrays. I will then modify pythons scripts IM-NET/point_sampling to load and encode these arrays into .hdf5 following IM-NET's point sampling method.
+    - The function ```voxelize_and_save()``` in **preprocess.py** will save these wavefront objects to a bunch of **.npy** arrays. I will then modify pythons scripts IM-NET/point_sampling to load and encode these arrays into .hdf5 following IM-NET's point sampling method.
 
 4. Run this dataset of shapes through the model
+
+    - **Current Problem**: The autoencoder doesn't seem to be learning when training grid size (```real_size```) is bigger than 4. It "gets stuck". **Possible reason**: there are too few data points in my dataset, and the generated .ply ends up being a cube **Possible solutions**: 1. treat my dataset as if it's a blurry dog image ==> add a transposed convolution layer to "lift" the information to a higher dimension. Not exactly sure if this will backfire and the model will get even worse 2. save my wavefront objects as 64^3 voxels instead of 16^3 voxels.
 
 5. If successful, go back to Blender and make some interesting procedural shapes.
 
@@ -60,27 +58,33 @@ If we want a (16, 16, 16) array, we can construct a 16 by 16 by 16 coordinate sy
 
 Ahah the above is actually very similar to the marching cubes algorithm but reversed and crude lol. 
 
-In this project, I will use a package ```mesh-to-sdf```. It takes in a wavefront object and outputs an ndarray of SDF (signed distance field) values. If the value at a position P is positive, then point P lies outside of the object, and if the value is negative, then P is inside the object. With this knowledge, we can simply convert the sdf output to a 3d array with 1s and 0s to represent voxels. 
+In this project, I will use a package ```mesh-to-sdf```. It takes in a wavefront object and outputs an ndarray of SDF (signed distance field) values. If the value at a position P is positive, then point P lies outside of the object, and if the value is negative, then P is inside the object. With this knowledge, we can simply convert the sdf output to a 3d array with 1s and 0s to represent voxels. (Spoiler alert, the network I will be using (IM-NET) actually learns whether a given coordinate in a grid is inside / outside of the 3D object)
 
 **How does the dimension of voxels array impact result?**
 
 I'm currently using (16, 16, 16) arrays to represent my square rings, but I'm worried that this is too small. I used IM-NET's progressive point sampling, and it brought it down to (8, 8, 8), (4, 4, 4), and (2, 2, 2), so the network will [gradually] learn from 2^3 to 4^3 to 8^3. We will see how this goes. 
 
-If the network doesn't quite learn, I might need to convert my square rings wavefront objects to (64, 64, 64), but the conversion will take a long time. 
+If the network doesn't learn, I might need to convert my square rings wavefront objects to (64, 64, 64), but the conversion might take a long time. 
+
+EDIT: The above concern is related to the current problem in Roadmap step 4. 
 
 ---
 
 ### Files
 
-**generate_data.py**: generate a dataset of procedural shapes using bpy
+**generate_data.py**: generate a dataset of procedural shapes (rectangular rings) using ```bpy``` in Blender
 
-**visualize.py**: visualize a .mat file
+**preprocess.py**: voxelize the generated wavefront objects and save to .npy files
+
+**./point_sampling**: create .hdf5 datasets using the .npy files
+
+**./IMGAN**: autoencoder and generator network from IM-NET
+
+**./IMSVR**: single view reconstruction network from IM-NET
 
 ---
 
-### Dev Notes
-
-#### Create virtual env
+### Dev log
 
 Followed README of https://github.com/czq142857/IM-NET. The data that this repo references seems to be processed data in .mat. No clue what the 'b' and 'bi' fields in the .mat file mean. 
 
@@ -112,6 +116,9 @@ IM-NET readme: Training on the 13 ShapeNet categories takes about 4 days on one 
 
 Simplified point_sampling to fit my one-model-type dataset. 
 
+The autoencoder doesn't seem to be learning when training grid size (```real_size```) is bigger than 4. **Possible reason**: there are too few data points in my dataset. **Possible solutions**: 1. treat my dataset as if it's a blurry dog image ==> add a transposed convolution layer to "lift" the information to a larger resolution. 2. save my wavefront objects as 64^3 voxels instead of 16^3 voxels.
+
+
 '''
 python main.py --ae --train --epoch 20 --real_size 2 --batch_size_input 8
 python main.py --ae --train --epoch 40 --real_size 4 --batch_size_input 64
@@ -120,6 +127,3 @@ python main.py --ae
 python main.py --train --epoch 1000
 python main.py
 '''
-
-
-20, 80,  

@@ -1,1 +1,0 @@
-python main.py --train --epoch 2000

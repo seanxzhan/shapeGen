@@ -20,9 +20,11 @@ def linear(input_, output_size, scope):
 
 def lift(input_, output_size, strides, scope, padding):
 	in_shape = input_.get_shape().as_list()
+	print(in_shape)
 	with tf.variable_scope(scope):
-		matrix = tf.get_variable("Matrix", shape, initializer=tf.contrib.layers.xavier_initializer())
-		bias = tf.get_variable("bias", [shape[-1]], initializer=tf.zeros_initializer())
+		filter_shape = [in_shape[1], in_shape[2], in_shape[3], in_shape[0], in_shape[4]]
+		matrix = tf.get_variable('Matrix', filter_shape, initializer=tf.contrib.layers.xavier_initializer())
+		bias = tf.get_variable("bias", [filter_shape[-2]], initializer=tf.zeros_initializer())
 		conv = tf.nn.conv3d_transpose(input_, matrix, output_size, strides=strides, padding=padding)
 		conv = tf.nn.bias_add(conv, bias)
 		print("lifting","in",in_shape,"out",conv.shape)

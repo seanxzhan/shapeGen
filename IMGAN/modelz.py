@@ -11,14 +11,14 @@ from ops import *
 
 class ZGAN(object):
 	# def __init__(self, sess, is_training = False, z_vector_dim=128, z_dim=128, df_dim=2048, gf_dim=2048, dataset_name='default', checkpoint_dir=None, sample_dir=None, data_dir='./data'):
-	def __init__(self, sess, is_training = False, z_vector_dim=32, z_dim=32, df_dim=256, gf_dim=256, dataset_name='default', checkpoint_dir=None, sample_dir=None, data_dir='./data'):
+	def __init__(self, sess, is_training = False, z_vector_dim=16, z_dim=16, df_dim=256, gf_dim=256, dataset_name='default', checkpoint_dir=None, sample_dir=None, data_dir='./data'):
 		"""
 		Args:
 			too lazy to explain
 		"""
 		self.sess = sess
 
-		self.z_dim = z_dim
+		self.z_dim = z_dim	
 		self.z_vector_dim = z_vector_dim
 
 		self.df_dim = df_dim
@@ -47,8 +47,11 @@ class ZGAN(object):
 		self.z_vector = tf.placeholder(shape=[None,self.z_vector_dim], dtype=tf.float32)
 		self.z = tf.placeholder(shape=[None,self.z_dim], dtype=tf.float32)
 		
+		# generates from noise
 		self.G = self.generator(self.z, reuse=False)
+		# discrimates against real data
 		self.D = self.discriminator(self.z_vector, reuse=False)
+		# discrimates against fake data
 		self.D_ = self.discriminator(self.G, reuse=True)
 		
 		self.sG = self.generator(self.z, reuse=True)
@@ -66,6 +69,9 @@ class ZGAN(object):
 		ddx = tf.reduce_mean(tf.square(ddx - 1.0) * 10.0)
 
 		self.d_loss = self.d_loss + ddx
+
+		# self.d_loss = tf.reduce_mean(self.D) - tf.reduce_mean(self.D_)
+		# self.g_loss = tf.reduce_mean(self.D_)
 
 		self.vars = tf.trainable_variables()
 		self.g_vars = [var for var in self.vars if 'g_' in var.name]
@@ -138,7 +144,7 @@ class ZGAN(object):
 				self.save(config.checkpoint_dir, epoch)
 				
 				#training z
-				z_height = 64
+				z_height = 16
 				z_counter = np.zeros([z_height,self.z_vector_dim],np.int32)
 				z_img = np.zeros([z_height,self.z_vector_dim],np.uint8)
 				
@@ -149,7 +155,7 @@ class ZGAN(object):
 						if slot>z_height or slot<0: print("error slot")
 						z_counter[slot,j] += 1
 				
-				maxz = 50#np.max(z_counter)
+				maxz = 50 #np.max(z_counter)
 				for i in range(z_height):
 					for j in range(self.z_dim):
 						x = int(z_counter[i,j]*256/maxz)
@@ -159,7 +165,7 @@ class ZGAN(object):
 				cv2.imwrite("z_train.png", z_img)
 				
 				#generated z
-				z_height = 64
+				z_height = 16
 				z_counter = np.zeros([z_height,self.z_vector_dim],np.int32)
 				z_img = np.zeros([z_height,self.z_vector_dim],np.uint8)
 				

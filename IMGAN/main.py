@@ -12,14 +12,17 @@ import h5py
 
 flags = tf.app.flags
 flags.DEFINE_integer("epoch", 10000, "Epoch to train [25]")
-flags.DEFINE_float("learning_rate", 0.00002, "Learning rate of for adam [0.0002]")
+flags.DEFINE_float("learning_rate", 0.00005, "Learning rate of for adam [0.0002]")
 flags.DEFINE_float("beta1", 0.5, "Momentum term of adam [0.5]")
 # flags.DEFINE_string("dataset", "all_vox256_img", "The name of dataset")
 # flags.DEFINE_integer("real_size", 64, "output point-value voxel grid size in training [64]")
 # flags.DEFINE_integer("batch_size_input", 16384, "training batch size (virtual, batch_size is the real batch_size) [16384]")
-flags.DEFINE_string("dataset", "square_rings_vox16_img", "The name of dataset")
-flags.DEFINE_integer("real_size", 8, "output point-value voxel grid size in training [8]")
-flags.DEFINE_integer("batch_size_input", 256, "training batch size (virtual, batch_size is the real batch_size) [256]")
+# flags.DEFINE_string("dataset", "square_rings_vox16_img", "The name of dataset")
+flags.DEFINE_string("dataset", "square_rings_vox64", "The name of dataset")
+# flags.DEFINE_integer("real_size", 8, "output point-value voxel grid size in training [8]")
+# flags.DEFINE_integer("batch_size_input", 256, "training batch size (virtual, batch_size is the real batch_size) [256]")
+flags.DEFINE_integer("real_size", 16, "output point-value voxel grid size in training [16]")
+flags.DEFINE_integer("batch_size_input", 2048, "training batch size (virtual, batch_size is the real batch_size) [256]")
 flags.DEFINE_string("checkpoint_dir", "checkpoint", "Directory name to save the checkpoints [checkpoint]")
 flags.DEFINE_string("data_dir", "./data", "Root directory of dataset [data]")
 flags.DEFINE_string("sample_dir", "samples", "Directory name to save the image samples [samples]")
@@ -39,7 +42,7 @@ def main(_):
 	run_config.gpu_options.allow_growth=True
 
 	if FLAGS.ae:
-		with tf.Session(config=run_config) as sess:
+		with tf.compat.v1.Session(config=run_config) as sess:
 			imae = IMAE(
 					sess,
 					FLAGS.real_size,
@@ -78,7 +81,7 @@ def main(_):
 						checkpoint_dir=FLAGS.checkpoint_dir,
 						sample_dir=FLAGS.sample_dir,
 						data_dir=FLAGS.data_dir)
-				generated_z = zgan.get_z(FLAGS, 16)
+				generated_z = zgan.get_z(FLAGS, 2)
 			tf.reset_default_graph()
 			'''
 			hdf5_file = h5py.File("temp_z.hdf5", mode='w')
@@ -96,7 +99,8 @@ def main(_):
 						checkpoint_dir=FLAGS.checkpoint_dir,
 						sample_dir=FLAGS.sample_dir,
 						data_dir=FLAGS.data_dir)
-				imae.test_z(FLAGS, generated_z, 128)
+				# imae.test_z(FLAGS, generated_z, 128)
+				imae.test_z(FLAGS, generated_z, 4)
 			
 			'''
 			#option 2 use filtered z

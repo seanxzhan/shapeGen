@@ -10,7 +10,7 @@ This project generates a type of procedural 3D shapes (currently rectangular rin
 
     - Data preparation takes in .mat files. Need to figure out this workflow to setup my own dataset. EDIT: workflow is described below. 
 
-2. Use Blender + pyton to create a dataset of simple shapes (rectangular rings). 
+2. Use Blender + python to create a dataset of simple shapes (rectangular rings). 
 
     - These rectangular rings will have dimension (random.uniform(0.1, 0.4), 1, 1). The **y** and **z** dimensions are the same because it'd be interesting to see if the generative network can learn this property. The rings will also be kind of flat, so the output of the network should also be flat. Note that the size of the hole varies. 
 
@@ -120,10 +120,19 @@ The autoencoder doesn't seem to be learning when training grid size (```real_siz
 
 
 '''
+cd IMGAN
+
 python main.py --ae --train --epoch 20 --real_size 2 --batch_size_input 8
+
 python main.py --ae --train --epoch 40 --real_size 4 --batch_size_input 64
+
 python main.py --ae --train --epoch 80 --real_size 8 --batch_size_input 256
+
+python main.py --ae --train --epoch 50 --real_size 16 --batch_size_input 2048
+
 python main.py --ae
-python main.py --train --epoch 1000
+
+python main.py --train --epoch 10000
+
 python main.py
 '''

@@ -7,12 +7,14 @@ import numpy as np
 import h5py
 import cv2
 import mcubes
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 
 from ops import *
 
 class IMAE(object):
 	# def __init__(self, sess, real_size, batch_size_input, is_training = False, z_dim=256, ef_dim=32, gf_dim=128, dataset_name='default', checkpoint_dir=None, sample_dir=None, data_dir='./data'):
-	def __init__(self, sess, real_size, batch_size_input, is_training = False, z_dim=32, ef_dim=4, gf_dim=128, dataset_name='default', checkpoint_dir=None, sample_dir=None, data_dir='./data'):
+	def __init__(self, sess, real_size, batch_size_input, is_training = False, z_dim=16, ef_dim=8, gf_dim=32, dataset_name='default', checkpoint_dir=None, sample_dir=None, data_dir='./data'):
 		"""
 		Args:
 			author: too lazy to explain
@@ -31,7 +33,8 @@ class IMAE(object):
 		if self.batch_size_input<self.batch_size:
 			self.batch_size = self.batch_size_input
 		
-		self.input_size = 8 #input voxel grid size
+		# self.input_size = 8 #input voxel grid size
+		self.input_size = 16 #input voxel grid size
 
 		self.z_dim = z_dim
 		self.ef_dim = ef_dim
@@ -64,13 +67,22 @@ class IMAE(object):
 			else:
 				print("warning: cannot load "+self.data_dir+'/'+self.dataset_load+'.hdf5')
 		
-		if not is_training:
+		"""
+		dimf = self.frame_grid_size
+		frame_batch_num = int(dimf**3/self.batch_size)
+		assert frame_batch_num>0
+		"""
+
+		if not is_training: # 
 			#keep everything a power of 2
-			self.cell_grid_size = 4
-			self.frame_grid_size = 64
+			# self.cell_grid_size = 4
+			self.cell_grid_size = 1
+			# self.frame_grid_size = 64
+			self.frame_grid_size = 16
 			self.real_size = self.cell_grid_size*self.frame_grid_size #=256, output point-value voxel grid size in testing
-			self.batch_size = 16*16*16*4*4 #adjust batch_size according to gpu memory size in testing
-			
+			# self.batch_size = 16*16*16*4*4 #adjust batch_size according to gpu memory size in testing
+			# self.batch_size = 8*8*8*4
+			self.batch_size = 16*16*16
 			#get coords
 			dimc = self.cell_grid_size
 			dimf = self.frame_grid_size
@@ -110,7 +122,7 @@ class IMAE(object):
 			self.frame_z = np.reshape(self.frame_z,[dimf*dimf*dimf])
 			self.frame_coords = (self.frame_coords+0.5)/dimf-0.5
 			self.frame_coords = np.reshape(self.frame_coords,[dimf*dimf*dimf,3])
-			self.sampling_threshold = 0.9 #final marching cubes threshold
+			self.sampling_threshold = 0.5 #final marching cubes threshold
 		
 		self.build_model()
 
@@ -127,10 +139,11 @@ class IMAE(object):
 		self.zG = self.generator(self.point_coord, self.z_vector, phase_train=False, reuse=True)
 
 		self.loss = tf.reduce_mean(tf.square(self.point_value - self.G))
+		# self.loss = tf.reduce_mean(tf.square(self.point_value - self.sG))
 		
 		self.saver = tf.train.Saver(max_to_keep=10)
 		
-		
+	# outputs the sdf value for each point
 	def generator(self, points, z, phase_train=True, reuse=False):
 		batch_size = tf.shape(points)[0]
 		with tf.variable_scope("simple_net") as scope:
@@ -138,12 +151,12 @@ class IMAE(object):
 				scope.reuse_variables()
 			
 			zs = tf.tile(z, [batch_size,1])
-			pointz = tf.concat([points,zs],1)
+			pointz = tf.concat([points,zs],1) # represents 
 			
 			h1 = lrelu(linear(pointz, self.gf_dim*8, 'h1_lin'))
 			h2 = lrelu(linear(h1, self.gf_dim*8, 'h2_lin'))
 			h3 = lrelu(linear(h2, self.gf_dim*8, 'h3_lin'))
-			h4 = lrelu(linear(h1, self.gf_dim*4, 'h4_lin'))
+			h4 = lrelu(linear(h3, self.gf_dim*4, 'h4_lin'))
 			h5 = lrelu(linear(h4, self.gf_dim*2, 'h5_lin'))
 			h6 = lrelu(linear(h5, self.gf_dim, 'h6_lin'))
 			h7 = linear(h6, 1, 'h7_lin')
@@ -159,29 +172,21 @@ class IMAE(object):
 				scope.reuse_variables()
 			
 			param = 2
+			# strides = 64 / self.input_size
 
-			# #lifted = lift(inputs, 64, 'lifting')
+			# lifted = lift(inputs, [1, 64, 64, 64, 1], [1, strides, strides, strides, 1], 'lifting', "SAME")
 
 			# d_1 = conv3d(lifted, shape=[param, param, param, 1, self.ef_dim], strides=[1,2,2,2,1], scope='conv_1')
-			# # d_1 = conv3d(inputs, shape=[2, 2, 2, 1, self.ef_dim], strides=[1,2,2,2,1], scope='conv_1')
-			# # d_1 = conv3d(inputs, shape=[2, 2, 2, 1, 16], strides=[1,2,2,2,1], scope='conv_1')
 			# d_1 = lrelu(instance_norm(d_1, phase_train))
 
 			# d_2 = conv3d(d_1, shape=[param, param, param, self.ef_dim, self.ef_dim*2], strides=[1,2,2,2,1], scope='conv_2')
-			# # d_2 = conv3d(d_1, shape=[2, 2, 2, self.ef_dim, self.ef_dim*2], strides=[1,2,2,2,1], scope='conv_2')
-			# # d_2 = conv3d(d_1, shape=[4, 4, 4, 4, 32], strides=[1,1,1,1,1], scope='conv_2', padding="VALID")
 			# d_2 = lrelu(instance_norm(d_2, phase_train))
-			# # d_2 = tf.nn.sigmoid(d_2)
-			
+
 			# d_3 = conv3d(d_2, shape=[param, param, param, self.ef_dim*2, self.ef_dim*4], strides=[1,2,2,2,1], scope='conv_3')
 			# d_3 = lrelu(instance_norm(d_3, phase_train))
-			# # d_3 = conv3d(d_2, shape=[2, 2, 2, self.ef_dim*2, self.z_dim], strides=[1,1,1,1,1], scope='conv_3', padding="VALID")
-			# # d_3 = tf.nn.sigmoid(d_3)
 
-			# # d_4 = conv3d(d_3, shape=[4, 4, 4, self.ef_dim*4, self.ef_dim*8], strides=[1,2,2,2,1], scope='conv_4')
 			# d_4 = conv3d(d_3, shape=[param, param, param, self.ef_dim*4, self.ef_dim*8], strides=[1,2,2,2,1], scope='conv_4')
 			# d_4 = lrelu(instance_norm(d_4, phase_train))
-			# # d_4 = tf.nn.sigmoid(d_4)
 
 			# d_5 = conv3d(d_4, shape=[4, 4, 4, self.ef_dim*8, self.z_dim], strides=[1,1,1,1,1], scope='conv_5', padding="VALID")
 			# d_5 = tf.nn.sigmoid(d_5)
@@ -194,7 +199,7 @@ class IMAE(object):
 			d_2 = conv3d(d_1, shape=[param, param, param, self.ef_dim, self.ef_dim*2], strides=[1,2,2,2,1], scope='conv_2')
 			d_2 = lrelu(instance_norm(d_2, phase_train))
 
-			d_3 = conv3d(d_2, shape=[param, param, param, self.ef_dim*2, self.ef_dim*4], strides=[1,1,1,1,1], scope='conv_3')
+			d_3 = conv3d(d_2, shape=[param, param, param, self.ef_dim*2, self.ef_dim*4], strides=[1,2,2,2,1], scope='conv_3')
 			d_3 = lrelu(instance_norm(d_3, phase_train))
 
 			d_4 = conv3d(d_3, shape=[param, param, param, self.ef_dim*4, self.z_dim], strides=[1,1,1,1,1], scope='conv_4', padding="VALID")
@@ -204,7 +209,7 @@ class IMAE(object):
 	
 	def train(self, config):
 		ae_optim = tf.train.AdamOptimizer(config.learning_rate, beta1=config.beta1).minimize(self.loss)
-		self.sess.run(tf.global_variables_initializer())
+		self.sess.run(tf.compat.v1.global_variables_initializer())
 		
 		batch_idxs = len(self.data_points)
 		batch_index_list = np.arange(batch_idxs)
@@ -248,15 +253,20 @@ class IMAE(object):
 				if idx==batch_idxs-1:
 					# model_float = np.zeros([256,256,256],np.float32)
 					# real_model_float = np.zeros([256,256,256],np.float32)
-					model_float = np.zeros([16,16,16],np.float32)
-					real_model_float = np.zeros([16,16,16],np.float32)
+					# model_float = np.zeros([16,16,16],np.float32)
+					# real_model_float = np.zeros([16,16,16],np.float32)
+					model_float = np.zeros([64,64,64],np.float32)
+					real_model_float = np.zeros([64,64,64],np.float32)
 					for minib in range(batch_num):
+						print("hello")
 						dxb = batch_index_list[idx]
+						print(minib)
+						print(dxb)
+						print(self.data_points_int.shape)
 						batch_voxels = self.data_voxels[dxb:dxb+1]
 						batch_points_int = self.data_points_int[dxb,minib*self.batch_size:(minib+1)*self.batch_size]
 						batch_points = self.data_points[dxb,minib*self.batch_size:(minib+1)*self.batch_size]
 						batch_values = self.data_values[dxb,minib*self.batch_size:(minib+1)*self.batch_size]
-						
 						model_out = self.sess.run(self.sG,
 							feed_dict={
 								self.vox3d: batch_voxels,
@@ -264,6 +274,7 @@ class IMAE(object):
 							})
 						model_float[batch_points_int[:,0],batch_points_int[:,1],batch_points_int[:,2]] = np.reshape(model_out, [self.batch_size])
 						real_model_float[batch_points_int[:,0],batch_points_int[:,1],batch_points_int[:,2]] = np.reshape(batch_values, [self.batch_size])
+						self.visualize_3d_arr(model_float)
 					img1 = np.clip(np.amax(model_float, axis=0)*256, 0,255).astype(np.uint8)
 					img2 = np.clip(np.amax(model_float, axis=1)*256, 0,255).astype(np.uint8)
 					img3 = np.clip(np.amax(model_float, axis=2)*256, 0,255).astype(np.uint8)
@@ -281,6 +292,24 @@ class IMAE(object):
 				if idx==batch_idxs-1:
 					self.save(config.checkpoint_dir, epoch)
 	
+
+	def custom_z2voxel(self, z):
+		real_size = 16
+		model_float = np.zeros([real_size, real_size, real_size], np.float32)
+
+		model_float = np.zeros([64,64,64],np.float32)
+		dxb = batch_index_list[idx]
+		batch_points_int = self.data_points_int[dxb,0:2048]
+		batch_points = self.data_points[dxb,0:2048]
+		batch_values = self.data_values[dxb,0:2048]
+		
+		model_out = self.sess.run(self.zG,
+			feed_dict={
+				self.z_vector: z,
+				self.point_coord: self.frame_coords,
+			})
+		model_float[batch_points_int[:,0],batch_points_int[:,1],batch_points_int[:,2]] = np.reshape(model_out, [2048])
+	
 	def z2voxel(self, z):
 		model_float = np.zeros([self.real_size+2,self.real_size+2,self.real_size+2],np.float32)
 		dimc = self.cell_grid_size
@@ -291,7 +320,9 @@ class IMAE(object):
 		
 		frame_batch_num = int(dimf**3/self.batch_size)
 		assert frame_batch_num>0
-		
+
+		print("----frame_coords----")
+		print(self.frame_coords)
 		#get frame grid values
 		for i in range(frame_batch_num):
 			model_out = self.sess.run(self.zG,
@@ -299,11 +330,14 @@ class IMAE(object):
 					self.z_vector: z,
 					self.point_coord: self.frame_coords[i*self.batch_size:(i+1)*self.batch_size],
 				})
+			print(model_out.shape)
+			print(model_out)
 			x_coords = self.frame_x[i*self.batch_size:(i+1)*self.batch_size]
 			y_coords = self.frame_y[i*self.batch_size:(i+1)*self.batch_size]
 			z_coords = self.frame_z[i*self.batch_size:(i+1)*self.batch_size]
+			self.visualize_3d_arr(model_out)
 			frame_flag[x_coords+1,y_coords+1,z_coords+1] = np.reshape((model_out>self.sampling_threshold).astype(np.uint8), [self.batch_size])
-		
+		self.visualize_3d_arr(frame_flag)
 		#get queue and fill up ones
 		for i in range(1,dimf+1):
 			for j in range(1,dimf+1):
@@ -359,6 +393,90 @@ class IMAE(object):
 									frame_flag[pi,pj,pk] = 1
 									queue.append((pi,pj,pk))
 		return model_float
+	
+
+	# def z2voxel(self, z):
+	# 	model_float = np.zeros([self.real_size+2,self.real_size+2,self.real_size+2],np.float32)
+	# 	dimc = self.cell_grid_size
+	# 	dimf = self.frame_grid_size
+		
+	# 	frame_flag = np.zeros([dimf+2,dimf+2,dimf+2],np.uint8)
+	# 	queue = []
+		
+	# 	frame_batch_num = int(dimf**3/self.batch_size)
+	# 	assert frame_batch_num>0
+
+	# 	print("----frame_coords----")
+	# 	print(self.frame_coords)
+	# 	#get frame grid values
+	# 	for i in range(frame_batch_num):
+	# 		model_out = self.sess.run(self.zG,
+	# 			feed_dict={
+	# 				self.z_vector: z,
+	# 				self.point_coord: self.frame_coords[i*self.batch_size:(i+1)*self.batch_size],
+	# 			})
+	# 		print(model_out.shape)
+	# 		print(model_out)
+	# 		x_coords = self.frame_x[i*self.batch_size:(i+1)*self.batch_size]
+	# 		y_coords = self.frame_y[i*self.batch_size:(i+1)*self.batch_size]
+	# 		z_coords = self.frame_z[i*self.batch_size:(i+1)*self.batch_size]
+	# 		frame_flag[x_coords+1,y_coords+1,z_coords+1] = np.reshape((model_out>self.sampling_threshold).astype(np.uint8), [self.batch_size])
+	# 	self.visualize_3d_arr(frame_flag)
+	# 	#get queue and fill up ones
+	# 	for i in range(1,dimf+1):
+	# 		for j in range(1,dimf+1):
+	# 			for k in range(1,dimf+1):
+	# 				maxv = np.max(frame_flag[i-1:i+2,j-1:j+2,k-1:k+2])
+	# 				minv = np.min(frame_flag[i-1:i+2,j-1:j+2,k-1:k+2])
+	# 				if maxv!=minv:
+	# 					queue.append((i,j,k))
+	# 				elif maxv==1:
+	# 					x_coords = self.cell_x+(i-1)*dimc
+	# 					y_coords = self.cell_y+(j-1)*dimc
+	# 					z_coords = self.cell_z+(k-1)*dimc
+	# 					model_float[x_coords+1,y_coords+1,z_coords+1] = 1.0
+		
+	# 	print("running queue:",len(queue))
+	# 	cell_batch_size = dimc**3
+	# 	cell_batch_num = int(self.batch_size/cell_batch_size)
+	# 	assert cell_batch_num>0
+	# 	#run queue
+	# 	while len(queue)>0:
+	# 		batch_num = min(len(queue),cell_batch_num)
+	# 		point_list = []
+	# 		cell_coords = []
+	# 		for i in range(batch_num):
+	# 			point = queue.pop(0)
+	# 			point_list.append(point)
+	# 			cell_coords.append(self.cell_coords[point[0]-1,point[1]-1,point[2]-1])
+	# 		cell_coords = np.concatenate(cell_coords, axis=0)
+	# 		model_out_batch = self.sess.run(self.zG,
+	# 			feed_dict={
+	# 				self.z_vector: z,
+	# 				self.point_coord: cell_coords,
+	# 			})
+	# 		for i in range(batch_num):
+	# 			point = point_list[i]
+	# 			model_out = model_out_batch[i*cell_batch_size:(i+1)*cell_batch_size,0]
+	# 			x_coords = self.cell_x+(point[0]-1)*dimc
+	# 			y_coords = self.cell_y+(point[1]-1)*dimc
+	# 			z_coords = self.cell_z+(point[2]-1)*dimc
+	# 			model_float[x_coords+1,y_coords+1,z_coords+1] = model_out
+				
+	# 			if np.max(model_out)>self.sampling_threshold:
+	# 				for i in range(-1,2):
+	# 					pi = point[0]+i
+	# 					if pi<=0 or pi>dimf: continue
+	# 					for j in range(-1,2):
+	# 						pj = point[1]+j
+	# 						if pj<=0 or pj>dimf: continue
+	# 						for k in range(-1,2):
+	# 							pk = point[2]+k
+	# 							if pk<=0 or pk>dimf: continue
+	# 							if (frame_flag[pi,pj,pk] == 0):
+	# 								frame_flag[pi,pj,pk] = 1
+	# 								queue.append((pi,pj,pk))
+	# 	return model_float
 	
 	#may introduce foldovers
 	def optimize_mesh(self, vertices, z, iteration = 3):
@@ -489,6 +607,20 @@ class IMAE(object):
 		hdf5_file.close()
 		print("[z]")
 	
+	def visualize_3d_arr(self, arr):
+		""" Visualize a 3 dimensional array that represents voxels
+		Args:
+			arr (numpy.ndarray): a 3D array representing voxels
+		"""
+		x = arr[0]
+		y = arr[1]
+		z = arr[2]
+		fig = plt.figure()
+		ax = plt.axes(projection='3d')
+		ax.voxels(arr, edgecolor='k')
+		plt.show()
+
+
 	def test_z(self, config, batch_z, dim):
 		could_load, checkpoint_counter = self.load(self.checkpoint_dir)
 		if could_load:
@@ -497,8 +629,14 @@ class IMAE(object):
 			print(" [!] Load failed...")
 			return
 		
+		print("---generated z----")
+		print(batch_z.shape)
+
 		for t in range(batch_z.shape[0]):
 			model_float = self.z2voxel(batch_z[t:t+1])
+			print("---model_flaot.shape----")
+			print(model_float.shape)
+			# self.visualize_3d_arr(model_float)
 			# img1 = np.clip(np.amax(model_float, axis=0)*256, 0,255).astype(np.uint8)
 			# img2 = np.clip(np.amax(model_float, axis=1)*256, 0,255).astype(np.uint8)
 			# img3 = np.clip(np.amax(model_float, axis=2)*256, 0,255).astype(np.uint8)

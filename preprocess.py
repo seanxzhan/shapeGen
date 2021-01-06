@@ -8,7 +8,6 @@ import scipy.io as sio
 import pywavefront as pf
 import random
 import re
-import voxelizer as voxl
 import mesh_to_sdf as mts
 import trimesh
 

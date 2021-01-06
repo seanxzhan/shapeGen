@@ -7,9 +7,11 @@ import random
 
 # class_name = "03001627_chair"
 # hdf5_path = class_name+"/"+class_name[:8]+"_vox256.hdf5"
-hdf5_path = './square_rings/square_rings_vox16.hdf5'
+# hdf5_path = './square_rings/square_rings_vox16.hdf5'
+hdf5_path = './square_rings_batch_size_2048/square_rings_vox16.hdf5'
 voxel_input = h5py.File(hdf5_path, 'r')
 voxel_input_voxels = voxel_input["voxels"][:]
+print(voxel_input_voxels.shape)
 # voxel_input_points_2 = voxel_input["points_2"][:]
 # voxel_input_values_2 = voxel_input["values_2"][:]
 # voxel_input_points_4 = voxel_input["points_4"][:]
@@ -70,6 +72,7 @@ for idx in range(10):
 	batch_points_int = voxel_input_points_16[idx]
 	batch_values = voxel_input_values_16[idx]
 	vox[batch_points_int[:,0],batch_points_int[:,1],batch_points_int[:,2]] = np.reshape(batch_values, [-1])
+	print(vox.shape)
 	img1 = np.clip(np.amax(vox, axis=0)*256, 0,255).astype(np.uint8)
 	img2 = np.clip(np.amax(vox, axis=1)*256, 0,255).astype(np.uint8)
 	img3 = np.clip(np.amax(vox, axis=2)*256, 0,255).astype(np.uint8)

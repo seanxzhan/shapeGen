@@ -56,9 +56,9 @@ def main(_):
 			if FLAGS.train:
 				imae.train(FLAGS)
 			else:
-				imae.get_z(FLAGS)
+				# imae.get_z(FLAGS)
 				#imae.test_interp(FLAGS)
-				#imae.test(FLAGS)
+				imae.test(FLAGS)
 	else:
 		if FLAGS.train:
 			with tf.Session(config=run_config) as sess_z:

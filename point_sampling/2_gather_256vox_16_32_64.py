@@ -10,6 +10,7 @@ import queue
 import time
 #import mcubes
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 import re
 
 dim = 16
@@ -34,6 +35,20 @@ def visualize_3d_arr(arr):
     fig = plt.figure()
     ax = plt.axes(projection='3d')
     ax.voxels(arr, edgecolor='k')
+    plt.show()
+
+def visualize_scatterplot(arr):
+    """Visualize points in 3D space
+
+    Args:
+        arr (numpy.ndarray): a 2D array, where the element corresponds to a dim
+    """
+    x = arr[0]
+    y = arr[1]
+    z = arr[2]
+    fig = plt.figure()
+    ax = Axes3D(fig)
+    ax.scatter(x, y, z)
     plt.show()
 
 '''
@@ -76,7 +91,8 @@ def get_points_from_vox(q, path):
 	count = 0
 	for filename in os.listdir(path):
 		count += 1
-
+		if count == 2:
+			break
 		try:
 			# voxel_model_16_original = np.load(path + '/' + filename)
 			# voxel_model_16_original = voxel_model_16_original.astype('uint8')
@@ -141,7 +157,7 @@ def get_points_from_vox(q, path):
 				for k in range(dim_voxel):
 					voxel_model_temp[i,j,k] = np.max(voxel_model_64[i*multiplier:(i+1)*multiplier,j*multiplier:(j+1)*multiplier,k*multiplier:(k+1)*multiplier])
 		#write voxel
-		# visualize_3d_arr(voxel_model_temp)
+		visualize_3d_arr(voxel_model_temp)
 		sample_voxels = np.reshape(voxel_model_temp, (dim_voxel,dim_voxel,dim_voxel,1))
 		#sample points near surface
 		batch_size = batch_size_3
@@ -193,7 +209,10 @@ def get_points_from_vox(q, path):
 		sample_points_16 = sample_points
 		sample_values_16 = sample_values
 
-		# print(sample_points_8)
+		visualize_scatterplot(np.transpose(sample_points_16))
+
+		print(sample_points_16.shape)
+		print(np.max(sample_points_16)) #63
 		# print(sample_values_8)
 		
 		# #compress model 16 -> 4

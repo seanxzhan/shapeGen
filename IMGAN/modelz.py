@@ -6,12 +6,13 @@ import tensorflow as tf
 import numpy as np
 import h5py
 import cv2
+import matplotlib.pyplot as plt
 
 from ops import *
 
 class ZGAN(object):
 	# def __init__(self, sess, is_training = False, z_vector_dim=128, z_dim=128, df_dim=2048, gf_dim=2048, dataset_name='default', checkpoint_dir=None, sample_dir=None, data_dir='./data'):
-	def __init__(self, sess, is_training = False, z_vector_dim=16, z_dim=16, df_dim=256, gf_dim=256, dataset_name='default', checkpoint_dir=None, sample_dir=None, data_dir='./data'):
+	def __init__(self, sess, is_training = False, z_vector_dim=4, z_dim=4, df_dim=256, gf_dim=256, dataset_name='default', checkpoint_dir=None, sample_dir=None, data_dir='./data'):
 		"""
 		Args:
 			too lazy to explain
@@ -116,6 +117,9 @@ class ZGAN(object):
 		batch_size = 50
 		batch_num = int(batch_index_num/batch_size)
 
+		gen_loss = []
+		disc_loss = []
+
 		for epoch in range(counter, config.epoch+1):
 			np.random.shuffle(batch_index_list)
 			errD_total = 0
@@ -138,6 +142,8 @@ class ZGAN(object):
 				errD_total += errD
 				errG_total += errG
 				
+			gen_loss.append(errG_total/batch_num)
+			disc_loss.append(errD_total/batch_num)
 			print("Epoch: [%4d/%4d] time: %4.4f, d_loss: %.8f, g_loss: %.8f" % (epoch, config.epoch, time.time() - start_time, errD_total/batch_num, errG_total/batch_num))
 
 			if epoch%10 == 0:
@@ -190,6 +196,13 @@ class ZGAN(object):
 				cv2.imwrite("z_gen.png", z_img)
 				
 				print("[Visualized Z]")
+		
+		plt.plot(gen_loss, label = "G Loss")
+		plt.plot(disc_loss, label = "D Loss")
+		plt.xlabel('Epoch')
+		plt.ylim([-5, 10])
+		plt.legend()
+		plt.show()
 
 	def get_z(self, config, num):
 		could_load, checkpoint_counter = self.load(self.checkpoint_dir)

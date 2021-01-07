@@ -1,4 +1,3 @@
-import glob
 import os
 import numpy as np
 import matplotlib.pyplot as plt
@@ -10,18 +9,6 @@ import random
 import re
 import mesh_to_sdf as mts
 import trimesh
-
-def check_data():
-    """ Checks if data can be loaded by scipy.io
-    """
-    all_mat = glob.glob('.\\02691156\\*.mat')
-    # model = sio.loadmat('.\\02691156\\1a6ad7a24bb89733f412783097373bdc.mat')
-    for f in all_mat:
-        try:
-            model = sio.loadmat(f)
-        except:
-            print("err loading: " + f)
-    print("------ FINISHED CHECKING ------")
 
 def convert_to_arrays():
     """ Converts a wavefront obj into a 3D array
@@ -102,27 +89,21 @@ def voxelize_and_save():
     print("finished voxelization")
 
 if __name__ == '__main__':
-    # check_data()
-    # vox_arr = voxl.voxelization('.\\square_rings\\0.obj')
-    # visualize_3d_arr(vox_arr)
+    # voxelize_and_save()
 
-    # mesh = trimesh.load('./square_rings_objs/0.obj')
-    # voxels = mts.mesh_to_voxels(mesh, 14, pad=True)
-    # voxels = np.asarray(voxels)
-    # voxels = np.sign(voxels)
-    # voxels = (-1 * voxels + 1) / 2
-    # np.save('./square_rings_vox/0.npy', voxels)
+    """
+    test if procedure is valid
+    mesh = trimesh.load('./0.obj')
+    voxels = mts.mesh_to_voxels(mesh, 62, pad=True)
+    voxels = np.asarray(voxels)
+    voxels = np.sign(voxels)
+    voxels = (-1 * voxels + 1) / 2
+    voxels = voxels.astype('int')
+    np.save('./0.npy', voxels)
 
-    # voxel_model_16_original = np.load('./square_rings_vox/0.npy')
-    # voxel_model_16_original = voxel_model_16_original.astype('int')
-    # visualize_3d_arr(voxel_model_16_original)
+    voxel_model_64 = np.load('./0.npy')
+    voxel_model_64 = voxel_model_64.astype('int')
+    visualize_3d_arr(voxel_model_64)
+    """
 
-    voxelize_and_save()
-    # IMNET_point_sampling()
 
-    # for filename in os.listdir('./square_rings'):
-    #     if filename.endswith('.obj'):
-    #         print("--- Plotting {} ---".format(filename))
-    #         name = re.search('(.*).obj', filename).group(1)
-    #         mesh = np.load(os.path.join('square_rings_vox', name + '.npy'))
-    #         visualize_3d_arr(mesh)

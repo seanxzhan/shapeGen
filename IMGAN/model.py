@@ -13,7 +13,8 @@ from mpl_toolkits.mplot3d import Axes3D
 from ops import *
 
 class IMAE(object):
-	def __init__(self, sess, real_size, batch_size_input, is_training = False, z_dim=4, ef_dim=2, gf_dim=32, dataset_name='default', checkpoint_dir=None, sample_dir=None, data_dir='./data'):
+	# def __init__(self, sess, real_size, batch_size_input, is_training = False, z_dim=2, ef_dim=2, gf_dim=32, dataset_name='default', checkpoint_dir=None, sample_dir=None, data_dir='./data'):
+	def __init__(self, sess, real_size, batch_size_input, is_training = False, z_dim=32, ef_dim=4, gf_dim=32, dataset_name='default', checkpoint_dir=None, sample_dir=None, data_dir='./data'):
 		"""
 		Args:
 			author: too lazy to explain
@@ -28,16 +29,19 @@ class IMAE(object):
 		self.real_size = real_size #output point-value voxel grid size in training
 		self.batch_size_input = batch_size_input #training batch size (virtual, batch_size is the real batch_size)
 		
-		self.batch_size = self.batch_size_input
+		# adjustable
+		self.batch_size = int(self.batch_size_input/4)
 		
 		self.input_size = 16 #input voxel grid size
+		self.original_size = 64
 
 		self.z_dim = z_dim
 		self.ef_dim = ef_dim
 		self.gf_dim = gf_dim
 
 		self.dataset_name = dataset_name
-		self.dataset_load = dataset_name + '_train'
+		# self.dataset_load = dataset_name + '_train'
+		self.dataset_load = dataset_name + '_test'
 		self.checkpoint_dir = checkpoint_dir
 		self.data_dir = data_dir
 		
@@ -47,7 +51,7 @@ class IMAE(object):
 		if os.path.exists(self.data_dir+'/'+self.dataset_load+'.hdf5'):
 			self.data_dict = h5py.File(self.data_dir+'/'+self.dataset_load+'.hdf5', 'r')
 			self.data_points_int = self.data_dict['points_'+str(self.real_size)][:]
-			self.data_points = (self.data_points_int.astype(np.float32)+0.5)/64-0.5
+			self.data_points = (self.data_points_int.astype(np.float32)+0.5)/self.original_size-0.5
 			self.data_values = self.data_dict['values_'+str(self.real_size)][:]
 			self.data_voxels = self.data_dict['voxels'][:]
 			if self.batch_size_input!=self.data_points.shape[1]:
@@ -72,13 +76,13 @@ class IMAE(object):
 		if not is_training: # 
 			#keep everything a power of 2
 			# self.cell_grid_size = 4
-			self.cell_grid_size = 4
+			self.cell_grid_size = 1
 			# self.frame_grid_size = 64
 			self.frame_grid_size = 64
 			self.real_size = self.cell_grid_size*self.frame_grid_size #=256, output point-value voxel grid size in testing
 			# self.batch_size = 16*16*16*4*4 #adjust batch_size according to gpu memory size in testing
 			# self.batch_size = 8*8*8*4
-			self.batch_size = 16*16*16*4*4
+			self.batch_size = 64*64*64
 			#get coords
 			dimc = self.cell_grid_size
 			dimf = self.frame_grid_size
@@ -149,8 +153,8 @@ class IMAE(object):
 			pointz = tf.concat([points,zs],1) # represents 
 			
 			h1 = lrelu(linear(pointz, self.gf_dim*8, 'h1_lin'))
-			h2 = lrelu(linear(h1, self.gf_dim*8, 'h2_lin'))
-			h3 = lrelu(linear(h2, self.gf_dim*8, 'h3_lin'))
+			# h2 = lrelu(linear(h1, self.gf_dim*8, 'h2_lin'))
+			h3 = lrelu(linear(h1, self.gf_dim*8, 'h3_lin'))
 			h4 = lrelu(linear(h3, self.gf_dim*4, 'h4_lin'))
 			h5 = lrelu(linear(h4, self.gf_dim*2, 'h5_lin'))
 			h6 = lrelu(linear(h5, self.gf_dim, 'h6_lin'))
@@ -224,10 +228,9 @@ class IMAE(object):
 						})
 					avg_loss += errAE
 					avg_num += 1
-					loss.append(errAE)
+					
 					if (idx%200 == 0):
 						print("Epoch: [%2d/%2d] [%4d/%4d] time: %4.4f, loss: %.8f, avgloss: %.8f" % (epoch, config.epoch, idx, batch_idxs, time.time() - start_time, errAE, avg_loss/avg_num))
-
 				if idx==batch_idxs-1:
 					model_float = np.zeros([64,64,64],np.float32)
 					real_model_float = np.zeros([64,64,64],np.float32)
@@ -260,9 +263,10 @@ class IMAE(object):
 				
 				if idx==batch_idxs-1:
 					self.save(config.checkpoint_dir, epoch)
+				loss.append(avg_loss/avg_num)
 		plt.plot(loss, label = "AE Loss")
-		plt.xlabel('Epoch')
-		plt.ylim([0, 1])
+		plt.xlabel('Episode')
+		plt.ylim([0, 0.2])
 		plt.legend()
 		plt.show()
 		
@@ -415,11 +419,11 @@ class IMAE(object):
 		
 		interp_size = 10
 		# unseen data:
-		# idx1 = 4
+		# idx1 = 10
 		# idx2 = 14
 		# seen data:
-		idx1 = 3
-		idx2 = 47
+		idx1 = 18
+		idx2 = 275
 		
 		batch_voxels1 = self.data_voxels[idx1:idx1+1]
 		batch_voxels2 = self.data_voxels[idx2:idx2+1]
@@ -471,12 +475,12 @@ class IMAE(object):
 			
 			model_float = self.z2voxel(model_z)
 			
-			img1 = np.clip(np.amax(model_float, axis=0)*256, 0,255).astype(np.uint8)
-			img2 = np.clip(np.amax(model_float, axis=1)*256, 0,255).astype(np.uint8)
-			img3 = np.clip(np.amax(model_float, axis=2)*256, 0,255).astype(np.uint8)
-			cv2.imwrite(config.sample_dir+"/"+str(t)+"_1t.png",img1)
-			cv2.imwrite(config.sample_dir+"/"+str(t)+"_2t.png",img2)
-			cv2.imwrite(config.sample_dir+"/"+str(t)+"_3t.png",img3)
+			# img1 = np.clip(np.amax(model_float, axis=0)*256, 0,255).astype(np.uint8)
+			# img2 = np.clip(np.amax(model_float, axis=1)*256, 0,255).astype(np.uint8)
+			# img3 = np.clip(np.amax(model_float, axis=2)*256, 0,255).astype(np.uint8)
+			# cv2.imwrite(config.sample_dir+"/"+str(t)+"_1t.png",img1)
+			# cv2.imwrite(config.sample_dir+"/"+str(t)+"_2t.png",img2)
+			# cv2.imwrite(config.sample_dir+"/"+str(t)+"_3t.png",img3)
 			
 			vertices, triangles = mcubes.marching_cubes(model_float, self.sampling_threshold)
 			vertices = (vertices-0.5)/self.real_size-0.5

@@ -12,7 +12,7 @@ from ops import *
 
 class ZGAN(object):
 	# def __init__(self, sess, is_training = False, z_vector_dim=128, z_dim=128, df_dim=2048, gf_dim=2048, dataset_name='default', checkpoint_dir=None, sample_dir=None, data_dir='./data'):
-	def __init__(self, sess, is_training = False, z_vector_dim=4, z_dim=4, df_dim=256, gf_dim=256, dataset_name='default', checkpoint_dir=None, sample_dir=None, data_dir='./data'):
+	def __init__(self, sess, is_training = False, z_vector_dim=32, z_dim=32, df_dim=256, gf_dim=256, dataset_name='default', checkpoint_dir=None, sample_dir=None, data_dir='./data'):
 		"""
 		Args:
 			too lazy to explain
@@ -78,7 +78,7 @@ class ZGAN(object):
 		self.g_vars = [var for var in self.vars if 'g_' in var.name]
 		self.d_vars = [var for var in self.vars if 'd_' in var.name]
 		
-		self.saver = tf.train.Saver(max_to_keep=20)
+		self.saver = tf.train.Saver(max_to_keep=30)
 		
 	def generator(self, z, reuse=False):
 		with tf.variable_scope("generator") as scope:
@@ -146,11 +146,11 @@ class ZGAN(object):
 			disc_loss.append(errD_total/batch_num)
 			print("Epoch: [%4d/%4d] time: %4.4f, d_loss: %.8f, g_loss: %.8f" % (epoch, config.epoch, time.time() - start_time, errD_total/batch_num, errG_total/batch_num))
 
-			if epoch%10 == 0:
+			if epoch%100 == 0:
 				self.save(config.checkpoint_dir, epoch)
 				
 				#training z
-				z_height = 16
+				z_height = 32
 				z_counter = np.zeros([z_height,self.z_vector_dim],np.int32)
 				z_img = np.zeros([z_height,self.z_vector_dim],np.uint8)
 				
@@ -171,7 +171,7 @@ class ZGAN(object):
 				cv2.imwrite("z_train.png", z_img)
 				
 				#generated z
-				z_height = 16
+				z_height = 32
 				z_counter = np.zeros([z_height,self.z_vector_dim],np.int32)
 				z_img = np.zeros([z_height,self.z_vector_dim],np.uint8)
 				
@@ -196,7 +196,8 @@ class ZGAN(object):
 				cv2.imwrite("z_gen.png", z_img)
 				
 				print("[Visualized Z]")
-		
+		np.save('./gen_loss_1.npy', gen_loss)
+		np.save('./disc_loss_1.npy', disc_loss)
 		plt.plot(gen_loss, label = "G Loss")
 		plt.plot(disc_loss, label = "D Loss")
 		plt.xlabel('Epoch')
@@ -245,6 +246,10 @@ class ZGAN(object):
 		ckpt = tf.train.get_checkpoint_state(checkpoint_dir)
 		if ckpt and ckpt.model_checkpoint_path:
 			ckpt_name = os.path.basename(ckpt.model_checkpoint_path)
+
+			# -------- put in the name of the model parameters to reuse --------
+			# ckpt_name = 'ZGAN.model-9900'
+
 			self.saver.restore(self.sess, os.path.join(checkpoint_dir, ckpt_name))
 			counter = int(next(re.finditer("(\d+)(?!.*\d)",ckpt_name)).group(0))
 			print(" [*] Success to read {}".format(ckpt_name))

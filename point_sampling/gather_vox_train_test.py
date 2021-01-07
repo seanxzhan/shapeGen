@@ -19,7 +19,8 @@ else:
 
 # write voxels
 vox_size = 16 # remember we sampled at 16x16x16 resolution in gather_hdf5.py
-batch_size_3 = 8*8*8*4
+# batch_size_3 = 8*8*8*4
+batch_size_3 = 16**3
 
 # output hdf5
 if is_train_set:

@@ -128,7 +128,7 @@ python main.py --ae --train --epoch 40 --real_size 4 --batch_size_input 64
 
 python main.py --ae --train --epoch 80 --real_size 8 --batch_size_input 256
 
-python main.py --ae --train --epoch 50 --real_size 16 --batch_size_input 2048
+python main.py --ae --train --epoch 50 --real_size 16 --batch_size_input 4096
 
 python main.py --ae
 

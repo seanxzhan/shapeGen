@@ -13,7 +13,8 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import re
 
-batch_size_compressed = 8*8*8*4
+# batch_size_compressed = 8*8*8*4
+batch_size_compressed = 4096
 
 def visualize_3d_arr(arr):
     """ Visualize a 3 dimensional array that represents voxels
@@ -165,13 +166,10 @@ def get_points_from_vox(q, path, compress):
 			
 			sample_points_16 = sample_points
 			sample_values_16 = sample_values
-
-			print(sample_points_16.dtype)
-			print(np.unique(sample_values_16))
 			
 			name = re.search('(.*).npy', filename).group(1)
 			name = int(name)
-			print("put")
+			print(name)
 			q.put([name,exceed_16_flag,sample_points_16,sample_values_16,sample_voxels])
 
 def list_image(root, exts):
@@ -194,7 +192,7 @@ if __name__ == '__main__':
 		os.makedirs(obj_name)
 
 	# -------- INPUT DESIRED PARAMS --------
-	compress = False
+	compress = True
 	original_dim = 64
 	compress_factor = 4
 	if compress:

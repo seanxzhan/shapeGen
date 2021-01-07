@@ -33,3 +33,14 @@
 /result_latent_4
 /result_latent_16
 /IMGAN/data_too_small_bad
+/IMGAN/data_batch_size_2048
+/result_batch_size_4096_latent_2
+/result_batch_size_4096_latent_32
+/point_sampling/square_rings_batch_size_4096
+/point_sampling/square_rings_dataset_batch_size_4096
+/IMGAN/disc_loss_1.npy
+/IMGAN/disc_loss.npy
+/IMGAN/gen_loss_1.npy
+/IMGAN/gen_loss.npy
+/IMGAN/z_gen.png
+/IMGAN/z_train.png

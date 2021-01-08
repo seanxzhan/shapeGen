@@ -210,9 +210,9 @@ class ZGAN(object):
 			print(" [!] Load failed...")
 			return
 		
-		hdf5_path = './data/IMGAN_z.hdf5'
-		hdf5_file = h5py.File(hdf5_path, mode='w')
-		hdf5_file.create_dataset("gan_z", [num,self.z_dim], np.float32)
+		# hdf5_path = './data/IMGAN_z.hdf5'
+		# hdf5_file = h5py.File(hdf5_path, mode='w')
+		# hdf5_file.create_dataset("gan_z", [num,self.z_dim], np.float32)
 
 		#generated z
 		batch_z = np.random.normal(0, 0.2, [num, self.z_dim]).astype(np.float32)
@@ -222,8 +222,8 @@ class ZGAN(object):
 			}
 		)
 		print("z_vector shape: {}".format(z_vector.shape))
-		hdf5_file["gan_z"][:] = z_vector
-		hdf5_file.close()
+		# hdf5_file["gan_z"][:] = z_vector
+		# hdf5_file.close()
 		return z_vector
 	
 	@property

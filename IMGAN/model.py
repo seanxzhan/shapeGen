@@ -478,6 +478,7 @@ class IMAE(object):
 			
 			model_float = self.z2voxel(model_z)
 			
+			
 			# img1 = np.clip(np.amax(model_float, axis=0)*256, 0,255).astype(np.uint8)
 			# img2 = np.clip(np.amax(model_float, axis=1)*256, 0,255).astype(np.uint8)
 			# img3 = np.clip(np.amax(model_float, axis=2)*256, 0,255).astype(np.uint8)
@@ -573,7 +574,7 @@ class IMAE(object):
 			# print(vis_v.shape)
 			# self.visualize_scatterplot(vis_v)
 
-			np.save('/gen_vertices' + "/out" + str(t) + ".npy", vertices)
+			# np.save('/gen_vertices' + "/out" + str(t) + ".npy", vertices)
 			vertices = (vertices-0.5)/self.real_size-0.5
 			#vertices = self.optimize_mesh(vertices,model_z)
 			write_ply(config.sample_dir+"/"+"out"+str(t)+".ply", vertices, triangles)

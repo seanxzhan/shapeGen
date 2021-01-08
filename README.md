@@ -1,8 +1,10 @@
 ## ShapeGen
 
-This project generates a type of procedural 3D shapes (currently rectangular rings) and trains on the dataset and generates those shapes. 
+This project generates a dataset of 3D procedural shapes (square rings), modifies
+IM-NET’s shape generation model IMGAN, and trains the model to generate the
+aforementioned shapes. 
 
-Write-up: [PDF](https://drive.google.com/file/d/1yJft7YZPfo_rGE_y24le8Y3cd_PYv6xP/view?usp=sharing)
+Write-up with analysis: [PDF](https://drive.google.com/file/d/1yJft7YZPfo_rGE_y24le8Y3cd_PYv6xP/view?usp=sharing)
 
 ![Alt text](/interp.gif)
 

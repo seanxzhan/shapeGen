@@ -89,7 +89,7 @@ def voxelize_and_save():
     print("finished voxelization")
 
 if __name__ == '__main__':
-    # voxelize_and_save()
+    voxelize_and_save()
 
     """
     test if procedure is valid

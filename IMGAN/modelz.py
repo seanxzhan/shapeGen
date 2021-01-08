@@ -71,9 +71,6 @@ class ZGAN(object):
 
 		self.d_loss = self.d_loss + ddx
 
-		# self.d_loss = tf.reduce_mean(self.D) - tf.reduce_mean(self.D_)
-		# self.g_loss = tf.reduce_mean(self.D_)
-
 		self.vars = tf.trainable_variables()
 		self.g_vars = [var for var in self.vars if 'g_' in var.name]
 		self.d_vars = [var for var in self.vars if 'd_' in var.name]
@@ -213,6 +210,10 @@ class ZGAN(object):
 			print(" [!] Load failed...")
 			return
 		
+		hdf5_path = './data/IMGAN_z.hdf5'
+		hdf5_file = h5py.File(hdf5_path, mode='w')
+		hdf5_file.create_dataset("gan_z", [num,self.z_dim], np.float32)
+
 		#generated z
 		batch_z = np.random.normal(0, 0.2, [num, self.z_dim]).astype(np.float32)
 		z_vector = self.sess.run(self.sG,
@@ -220,6 +221,9 @@ class ZGAN(object):
 					self.z: batch_z,
 			}
 		)
+		print("z_vector shape: {}".format(z_vector.shape))
+		hdf5_file["gan_z"][:] = z_vector
+		hdf5_file.close()
 		return z_vector
 	
 	@property

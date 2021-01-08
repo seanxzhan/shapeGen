@@ -75,7 +75,7 @@ def main(_):
 						checkpoint_dir=FLAGS.checkpoint_dir,
 						sample_dir=FLAGS.sample_dir,
 						data_dir=FLAGS.data_dir)
-				generated_z = zgan.get_z(FLAGS, 10)
+				generated_z = zgan.get_z(FLAGS, 500)
 			tf.reset_default_graph()
 			'''
 			hdf5_file = h5py.File("temp_z.hdf5", mode='w')
@@ -94,7 +94,7 @@ def main(_):
 						sample_dir=FLAGS.sample_dir,
 						data_dir=FLAGS.data_dir)
 				# imae.test_z(FLAGS, generated_z, 128)
-				imae.test_z(FLAGS, generated_z, 10)
+				imae.test_z(FLAGS, generated_z, 500)
 			
 			'''
 			#option 2 use filtered z

@@ -44,3 +44,8 @@
 /IMGAN/gen_loss.npy
 /IMGAN/z_gen.png
 /IMGAN/z_train.png
+/gen_square_rings_vox_64
+/deprecated
+/generated_sampled_coors.npy
+/truth_sampled_coors.npy
+/results_latent_32

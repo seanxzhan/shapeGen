@@ -78,11 +78,11 @@ class IMAE(object):
 			# self.cell_grid_size = 4
 			self.cell_grid_size = 1
 			# self.frame_grid_size = 64
-			self.frame_grid_size = 64
+			self.frame_grid_size = 62
 			self.real_size = self.cell_grid_size*self.frame_grid_size #=256, output point-value voxel grid size in testing
 			# self.batch_size = 16*16*16*4*4 #adjust batch_size according to gpu memory size in testing
 			# self.batch_size = 8*8*8*4
-			self.batch_size = 64*64*64
+			self.batch_size = 62*62*62
 			#get coords
 			dimc = self.cell_grid_size
 			dimf = self.frame_grid_size
@@ -282,23 +282,24 @@ class IMAE(object):
 					all_coords[i][j][k][2] = k
 
 		all_coords = np.reshape(all_coords, [res**3, 3])
+		vox = np.zeros([res, res, res], np.uint8)
 
 		model_out = self.sess.run(self.zG,
 			feed_dict={
 				self.z_vector: z,
 				self.point_coord: all_coords
 			})
-		print(model_out.shape)
-		print(np.max(model_out))
-		print(np.min(model_out))
-		print(np.sign(-1))
-		vox = np.zeros([res, res, res], np.uint8)
-		for voxel_num in range(res**3):
-			sdf = model_out[voxel_num]
-			i, j, k = all_coords[voxel_num]
-			if sdf[0] > 1:
-				vox[i][j][k] = 1
-		self.visualize_3d_arr(vox)
+
+		vox[self.frame_x,self.frame_y,self.frame_z] = np.reshape((model_out>self.sampling_threshold).astype(np.uint8), [64*64*64])
+		
+
+		# for voxel_num in range(res**3):
+		# 	sdf = model_out[voxel_num]
+		# 	i, j, k = all_coords[voxel_num]
+		# 	if sdf[0] > 0:
+		# 		vox[i][j][k] = 1
+		# self.visualize_3d_arr(vox)
+		return vox
 		# vox = np.zeros([res, res, res], np.)
 		# model_float[batch_points_int[:,0],batch_points_int[:,1],batch_points_int[:,2]] = np.reshape(model_out, [2048])
 		
@@ -325,6 +326,8 @@ class IMAE(object):
 			y_coords = self.frame_y[i*self.batch_size:(i+1)*self.batch_size]
 			z_coords = self.frame_z[i*self.batch_size:(i+1)*self.batch_size]
 			frame_flag[x_coords+1,y_coords+1,z_coords+1] = np.reshape((model_out>self.sampling_threshold).astype(np.uint8), [self.batch_size])
+		# self.visualize_3d_arr(frame_flag)
+		# print("frame_flag: {} {} {}".format(frame_flag.shape, np.min(frame_flag), np.max(frame_flag)))
 		#get queue and fill up ones
 		for i in range(1,dimf+1):
 			for j in range(1,dimf+1):
@@ -528,6 +531,19 @@ class IMAE(object):
 		ax.voxels(arr, edgecolor='k')
 		plt.show()
 
+	def visualize_scatterplot(self, arr):
+		"""Visualize points in 3D space
+
+		Args:
+			arr (numpy.ndarray): a 2D array, where the element corresponds to a dim
+		"""
+		x = arr[0]
+		y = arr[1]
+		z = arr[2]
+		fig = plt.figure()
+		ax = Axes3D(fig)
+		ax.scatter(x, y, z)
+		plt.show()
 
 	def test_z(self, config, batch_z, dim):
 		could_load, checkpoint_counter = self.load(self.checkpoint_dir)
@@ -540,7 +556,9 @@ class IMAE(object):
 
 		for t in range(batch_z.shape[0]):
 			model_float = self.z2voxel(batch_z[t:t+1])
+			# model_float = self.custom_z2voxel(batch_z[t:t+1])
 			# self.visualize_3d_arr(model_float)
+
 			# img1 = np.clip(np.amax(model_float, axis=0)*256, 0,255).astype(np.uint8)
 			# img2 = np.clip(np.amax(model_float, axis=1)*256, 0,255).astype(np.uint8)
 			# img3 = np.clip(np.amax(model_float, axis=2)*256, 0,255).astype(np.uint8)
@@ -549,6 +567,13 @@ class IMAE(object):
 			# cv2.imwrite(config.sample_dir+"/"+str(t)+"_3tt.png",img3)
 			
 			vertices, triangles = mcubes.marching_cubes(model_float, self.sampling_threshold)
+			print("vertices {} {} {}".format(np.min(vertices), np.max(vertices), vertices.shape))
+
+			# vis_v = np.transpose(vertices)
+			# print(vis_v.shape)
+			# self.visualize_scatterplot(vis_v)
+
+			np.save('/gen_vertices' + "/out" + str(t) + ".npy", vertices)
 			vertices = (vertices-0.5)/self.real_size-0.5
 			#vertices = self.optimize_mesh(vertices,model_z)
 			write_ply(config.sample_dir+"/"+"out"+str(t)+".ply", vertices, triangles)
